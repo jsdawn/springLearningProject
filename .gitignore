@@ -37,6 +37,10 @@ replay_pid*
 # IDE: VS Code / Trae
 .vscode/
 
+# Environment files
+.env
+.env.*
+
 # OS files
 .DS_Store
 Thumbs.db

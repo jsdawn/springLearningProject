@@ -40,12 +40,17 @@ springProject
 - `mapper`
 - `resources/mapper`
 
-## 默认数据库
+## 数据库配置
 
-两个服务当前都使用 H2 内存数据库，方便你直接学习和启动：
+当前建议 `user-service`、`product-service`、`order-service` 共用一个 MySQL 数据库，例如 `mall_db`。
 
-- `user-service` 使用 `userdb`
-- `order-service` 使用 `orderdb`
+三个服务统一使用根目录 `.env` 中的这组变量：
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
 ## 在 IDEA 中如何启动
 
@@ -116,7 +121,29 @@ springProject
 4. 执行 `Developer: Reload Window`
 5. 在运行面板选择对应的 `launch` 配置启动服务
 
-### 4. 用户级 `settings.json` 示例
+### 4. `.env` 文件示例
+
+如果你使用 `launch.json` 里的 `envFile` 方式加载环境变量，可以在项目根目录创建 `.env` 文件。
+
+示例：
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=mall_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+说明：
+
+- 这份配置是共用数据库场景下的通用配置
+- 当前建议 `user-service`、`product-service`、`order-service` 共用一个数据库，例如 `mall_db`
+- 三个服务现在都统一读取这组 `DB_*` 变量
+- `.env` 已加入 `.gitignore`，不会默认提交到仓库
+- 如果你的 MySQL 用户有密码，把 `DB_PASSWORD` 改成你的实际密码
+
+### 5. 用户级 `settings.json` 示例
 
 ```jsonc
 // Java语言服务器运行JDK（当前示例使用 JDK 1.8）
@@ -148,7 +175,7 @@ springProject
 - `path` 请改成你自己机器上的 JDK 路径
 - 如果你本地同时装了多个 JDK，建议确认项目运行 JDK 与这里的配置保持一致
 
-### 5. 为什么不提交 `.vscode`
+### 6. 为什么不提交 `.vscode`
 
 因为这些文件通常带有明显的个人环境信息，比如：
 
@@ -166,6 +193,10 @@ springProject
 
 ## 如果你要改成 MySQL
 
-1. 在子模块 `pom.xml` 中加入 MySQL 驱动依赖
-2. 修改对应模块的 `application.yml`
-3. 删除或停用各模块下的 `schema.sql`、`data.sql`
+当前 `user-service`、`product-service`、`order-service` 已统一按 MySQL 方式配置。
+
+如果你要继续使用这套配置，请确保：
+
+1. 本地 MySQL 已启动
+2. 已创建数据库 `mall_db`，或把 `.env` 中的 `DB_NAME` 改成你的实际库名
+3. 已在数据库中手动创建各服务所需表结构
