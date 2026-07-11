@@ -1,0 +1,50 @@
+# Maven / Java build output
+target/
+out/
+build/
+bin/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Maven wrapper temporary files
+.mvn/timing.properties
+
+# IDE: IntelliJ IDEA
+.idea/
+*.iml
+
+# IDE: Eclipse / STS
+.classpath
+.project
+.settings/
+.apt_generated/
+.factorypath
+.springBeans
+.sts4-cache/
+
+# IDE: VS Code / Trae
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
