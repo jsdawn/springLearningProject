@@ -11,7 +11,9 @@ spring:
     password: ${DB_PASSWORD:}
   sql:
     init:
-      mode: never
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: []
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

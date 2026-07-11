@@ -200,3 +200,15 @@ DB_PASSWORD=
 1. 本地 MySQL 已启动
 2. 已创建数据库 `mall_db`，或把 `.env` 中的 `DB_NAME` 改成你的实际库名
 3. 已在数据库中手动创建各服务所需表结构
+
+## SQL 维护约定
+
+- `src/main/resources/schema.sql`：保存当前服务的最新完整表结构
+- `src/main/resources/db/migration/`：保存该服务后续的表结构变更 SQL
+- 变更脚本命名按 Flyway 常见规范使用：`V1__init.sql`、`V2__add_xxx.sql`
+
+当前目录位置：
+
+- `user-service/src/main/resources/db/migration/`
+- `product-service/src/main/resources/db/migration/`
+- `order-service/src/main/resources/db/migration/`
