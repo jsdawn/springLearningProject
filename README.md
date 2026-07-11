@@ -8,6 +8,7 @@
 springProject
 ├─ pom.xml                  父工程
 ├─ user-service             用户服务
+├─ product-service          商品服务
 └─ order-service            订单服务
 ```
 
@@ -29,6 +30,12 @@ springProject
 - 启动类：`com.example.orderservice.OrderServiceApplication`
 - 端口：`8082`
 - 示例接口：`GET /orders`
+
+### 3. product-service
+
+- 启动类：`com.example.productservice.ProductServiceApplication`
+- 端口：`8083`
+- 示例接口：`GET /products`
 
 ## 当前分层
 
@@ -55,9 +62,10 @@ springProject
 ## 在 IDEA 中如何启动
 
 1. 以 Maven 项目方式打开根目录 `springProject`
-2. 等待父工程和两个子模块加载完成
+2. 等待父工程和三个子模块加载完成
 3. 分别运行：
    - `UserServiceApplication`
+   - `ProductServiceApplication`
    - `OrderServiceApplication`
 
 ## 在 Trae / VS Code 中如何启动
@@ -68,7 +76,7 @@ springProject
 
 ### 1. `.vscode/launch.json`
 
-用于在编辑器里直接启动两个微服务：
+用于在编辑器里直接启动三个微服务：
 
 ```json
 {
@@ -80,6 +88,16 @@ springProject
       "cwd": "${workspaceFolder}",
       "mainClass": "com.example.orderservice.OrderServiceApplication",
       "projectName": "order-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-ProductServiceApplication<product-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.example.productservice.ProductServiceApplication",
+      "projectName": "product-service",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
     },
@@ -189,6 +207,7 @@ DB_PASSWORD=
 ## 启动后可访问
 
 - 用户服务：`http://localhost:8081/users`
+- 商品服务：`http://localhost:8083/products`
 - 订单服务：`http://localhost:8082/orders`
 
 ## 如果你要改成 MySQL
@@ -199,7 +218,8 @@ DB_PASSWORD=
 
 1. 本地 MySQL 已启动
 2. 已创建数据库 `mall_db`，或把 `.env` 中的 `DB_NAME` 改成你的实际库名
-3. 已在数据库中手动创建各服务所需表结构
+3. 三个服务至少各启动一次，自动执行各自的 `schema.sql` 初始化表结构
+4. 或者手动执行各服务的 `schema.sql`
 
 ## SQL 维护约定
 

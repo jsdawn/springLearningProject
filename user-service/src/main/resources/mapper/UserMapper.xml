@@ -5,7 +5,15 @@
 <mapper namespace="com.example.userservice.mapper.UserMapper">
 
     <select id="findAll" resultType="com.example.userservice.entity.User">
-        SELECT id, name
+        SELECT id,
+               username,
+               nickname,
+               phone,
+               email,
+               user_type AS userType,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
         FROM users
         ORDER BY id
     </select>
