@@ -1,6 +1,6 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.common.ApiResponse;
+import com.example.common.response.ApiResponse;
 import com.example.userservice.entity.User;
 import com.example.userservice.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,6 +1,6 @@
-package com.example.userservice.exception;
+package com.example.common.exception;
 
-import com.example.userservice.common.ApiResponse;
+import com.example.common.response.ApiResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 

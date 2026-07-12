@@ -24,6 +24,7 @@
     </properties>
 
     <modules>
+        <module>common-core</module>
         <module>user-service</module>
         <module>order-service</module>
         <module>product-service</module>

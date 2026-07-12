@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @MapperScan("com.example.orderservice.mapper")
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.example")
 public class OrderServiceApplication {
 
     public static void main(String[] args) {
