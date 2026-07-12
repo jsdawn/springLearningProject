@@ -1,0 +1,342 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "product-service API",
+    "version": "1.0.0",
+    "description": "OpenAPI definition for product-service endpoints."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8082",
+      "description": "Local product-service"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Products",
+      "description": "Product management endpoints"
+    }
+  ],
+  "paths": {
+    "/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "List products",
+        "operationId": "listProducts",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProductList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Create product",
+        "operationId": "createProduct",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateRequest"
+              },
+              "example": {
+                "productName": "Mechanical Keyboard",
+                "price": 199.00,
+                "stock": 100,
+                "status": 1,
+                "remark": "RGB mechanical keyboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProduct"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get product detail",
+        "operationId": "getProductById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProduct"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Update product",
+        "operationId": "updateProduct",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateRequest"
+              },
+              "example": {
+                "productName": "Mechanical Keyboard Pro",
+                "price": 219.00,
+                "stock": 80,
+                "status": 1,
+                "remark": "Updated version"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProduct"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{id}/status": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Change product status",
+        "operationId": "changeProductStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": true,
+            "description": "1 for on sale, 0 for off sale",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProduct"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "ProductId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Product ID",
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "example": 1
+      }
+    },
+    "schemas": {
+      "ApiResponseProduct": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Product"
+          }
+        }
+      },
+      "ApiResponseProductList": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "productName": {
+            "type": "string",
+            "example": "Mechanical Keyboard"
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "example": 199.00
+          },
+          "stock": {
+            "type": "integer",
+            "example": 100
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 for on sale, 0 for off sale",
+            "example": 1
+          },
+          "remark": {
+            "type": "string",
+            "example": "RGB mechanical keyboard"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-12T12:00:00"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-12T12:30:00"
+          }
+        }
+      },
+      "ProductCreateRequest": {
+        "type": "object",
+        "required": [
+          "productName",
+          "price",
+          "stock",
+          "status"
+        ],
+        "properties": {
+          "productName": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductUpdateRequest": {
+        "type": "object",
+        "required": [
+          "productName",
+          "price",
+          "stock",
+          "status"
+        ],
+        "properties": {
+          "productName": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "remark": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

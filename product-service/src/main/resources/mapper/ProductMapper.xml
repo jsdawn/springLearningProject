@@ -5,8 +5,63 @@
 <mapper namespace="com.example.productservice.mapper.ProductMapper">
 
     <select id="findAll" resultType="com.example.productservice.entity.Product">
-        SELECT id, name
+        SELECT id,
+               product_name AS productName,
+               price,
+               stock,
+               status,
+               remark,
+               create_time AS createTime,
+               update_time AS updateTime
         FROM products
         ORDER BY id
     </select>
+
+    <select id="findById" resultType="com.example.productservice.entity.Product">
+        SELECT id,
+               product_name AS productName,
+               price,
+               stock,
+               status,
+               remark,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM products
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.example.productservice.entity.Product" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO products (
+            product_name,
+            price,
+            stock,
+            status,
+            remark
+        )
+        VALUES (
+            #{productName},
+            #{price},
+            #{stock},
+            #{status},
+            #{remark}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.example.productservice.entity.Product">
+        UPDATE products
+        SET product_name = #{productName},
+            price = #{price},
+            stock = #{stock},
+            status = #{status},
+            remark = #{remark},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusById">
+        UPDATE products
+        SET status = #{status},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
 </mapper>

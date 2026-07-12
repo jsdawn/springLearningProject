@@ -20,4 +20,40 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> listProducts() {
         return productMapper.findAll();
     }
+
+    @Override
+    public Product getProductById(Long id) {
+        Product product = productMapper.findById(id);
+        if (product == null) {
+            throw new IllegalArgumentException("Product not found, id=" + id);
+        }
+        return product;
+    }
+
+    @Override
+    public Product createProduct(Product product) {
+        int rows = productMapper.insert(product);
+        if (rows <= 0 || product.getId() == null) {
+            throw new IllegalStateException("Create product failed");
+        }
+        return productMapper.findById(product.getId());
+    }
+
+    @Override
+    public Product updateProduct(Product product) {
+        int rows = productMapper.updateById(product);
+        if (rows <= 0) {
+            throw new IllegalStateException("Update product failed, id=" + product.getId());
+        }
+        return productMapper.findById(product.getId());
+    }
+
+    @Override
+    public Product changeProductStatus(Long id, Integer status) {
+        int rows = productMapper.updateStatusById(id, status);
+        if (rows <= 0) {
+            throw new IllegalStateException("Change product status failed, id=" + id);
+        }
+        return getProductById(id);
+    }
 }

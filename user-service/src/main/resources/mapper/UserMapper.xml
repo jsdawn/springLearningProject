@@ -58,13 +58,15 @@
             phone = #{phone},
             email = #{email},
             user_type = #{userType},
-            status = #{status}
+            status = #{status},
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
 
     <update id="updateStatusById">
         UPDATE users
-        SET status = #{status}
+        SET status = #{status},
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
 </mapper>
