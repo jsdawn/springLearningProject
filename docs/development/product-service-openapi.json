@@ -1,33 +1,33 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "product-service API",
+    "title": "商品服务 API",
     "version": "1.0.0",
-    "description": "OpenAPI definition for product-service endpoints."
+    "description": "product-service 接口定义文档。"
   },
   "servers": [
     {
       "url": "http://localhost:8082",
-      "description": "Local product-service"
+      "description": "本地商品服务"
     }
   ],
   "tags": [
     {
-      "name": "Products",
-      "description": "Product management endpoints"
+      "name": "商品管理",
+      "description": "商品管理相关接口"
     }
   ],
   "paths": {
     "/products": {
       "get": {
         "tags": [
-          "Products"
+          "商品管理"
         ],
-        "summary": "List products",
+        "summary": "查询商品列表",
         "operationId": "listProducts",
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "成功",
             "content": {
               "application/json": {
                 "schema": {
@@ -40,9 +40,9 @@
       },
       "post": {
         "tags": [
-          "Products"
+          "商品管理"
         ],
-        "summary": "Create product",
+        "summary": "创建商品",
         "operationId": "createProduct",
         "requestBody": {
           "required": true,
@@ -63,7 +63,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "成功",
             "content": {
               "application/json": {
                 "schema": {
@@ -78,9 +78,9 @@
     "/products/{id}": {
       "get": {
         "tags": [
-          "Products"
+          "商品管理"
         ],
-        "summary": "Get product detail",
+        "summary": "查询商品详情",
         "operationId": "getProductById",
         "parameters": [
           {
@@ -89,7 +89,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "成功",
             "content": {
               "application/json": {
                 "schema": {
@@ -102,9 +102,9 @@
       },
       "put": {
         "tags": [
-          "Products"
+          "商品管理"
         ],
-        "summary": "Update product",
+        "summary": "更新商品",
         "operationId": "updateProduct",
         "parameters": [
           {
@@ -130,7 +130,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "成功",
             "content": {
               "application/json": {
                 "schema": {
@@ -145,9 +145,9 @@
     "/products/{id}/status": {
       "patch": {
         "tags": [
-          "Products"
+          "商品管理"
         ],
-        "summary": "Change product status",
+        "summary": "修改商品状态",
         "operationId": "changeProductStatus",
         "parameters": [
           {
@@ -157,7 +157,7 @@
             "name": "status",
             "in": "query",
             "required": true,
-            "description": "1 for on sale, 0 for off sale",
+            "description": "1 表示上架，0 表示下架",
             "schema": {
               "type": "integer",
               "enum": [
@@ -170,7 +170,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "成功",
             "content": {
               "application/json": {
                 "schema": {
@@ -189,7 +189,7 @@
         "name": "id",
         "in": "path",
         "required": true,
-        "description": "Product ID",
+        "description": "商品 ID",
         "schema": {
           "type": "integer",
           "format": "int64"
@@ -256,7 +256,7 @@
           },
           "status": {
             "type": "integer",
-            "description": "1 for on sale, 0 for off sale",
+            "description": "1 表示上架，0 表示下架",
             "example": 1
           },
           "remark": {
