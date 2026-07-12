@@ -51,4 +51,9 @@ public class ProductController {
     public ApiResponse<Product> changeStatus(@PathVariable Long id, @RequestParam Integer status) {
         return ApiResponse.success("Product status updated successfully", productService.changeProductStatus(id, status));
     }
+
+    @PatchMapping("/{id}/stock")
+    public ApiResponse<Product> adjustStock(@PathVariable Long id, @RequestParam Integer delta) {
+        return ApiResponse.success("Product stock updated successfully", productService.adjustProductStock(id, delta));
+    }
 }

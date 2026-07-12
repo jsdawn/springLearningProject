@@ -15,4 +15,6 @@ public interface ProductService {
     Product updateProduct(Product product);
 
     Product changeProductStatus(Long id, Integer status);
+
+    Product adjustProductStock(Long id, Integer delta);
 }

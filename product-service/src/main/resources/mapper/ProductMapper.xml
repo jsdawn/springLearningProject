@@ -64,4 +64,12 @@
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
+
+    <update id="adjustStockById">
+        UPDATE products
+        SET stock = stock + #{delta},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND stock + #{delta} >= 0
+    </update>
 </mapper>

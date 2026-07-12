@@ -56,4 +56,18 @@ public class ProductServiceImpl implements ProductService {
         }
         return getProductById(id);
     }
+
+    @Override
+    public Product adjustProductStock(Long id, Integer delta) {
+        if (delta == null || delta == 0) {
+            throw new IllegalArgumentException("delta must not be 0");
+        }
+
+        Product product = getProductById(id);
+        int rows = productMapper.adjustStockById(id, delta);
+        if (rows <= 0) {
+            throw new IllegalStateException("Adjust product stock failed, id=" + id);
+        }
+        return getProductById(product.getId());
+    }
 }

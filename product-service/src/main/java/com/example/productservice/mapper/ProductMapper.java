@@ -18,4 +18,6 @@ public interface ProductMapper {
     int updateById(Product product);
 
     int updateStatusById(@Param("id") Long id, @Param("status") Integer status);
+
+    int adjustStockById(@Param("id") Long id, @Param("delta") Integer delta);
 }

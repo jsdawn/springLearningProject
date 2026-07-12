@@ -28,13 +28,13 @@ springProject
 ### 2. order-service
 
 - 启动类：`com.example.orderservice.OrderServiceApplication`
-- 端口：`8082`
+- 端口：`8083`
 - 示例接口：`GET /orders`
 
 ### 3. product-service
 
 - 启动类：`com.example.productservice.ProductServiceApplication`
-- 端口：`8083`
+- 端口：`8082`
 - 示例接口：`GET /products`
 
 ## 当前分层
@@ -207,8 +207,8 @@ DB_PASSWORD=
 ## 启动后可访问
 
 - 用户服务：`http://localhost:8081/users`
-- 商品服务：`http://localhost:8083/products`
-- 订单服务：`http://localhost:8082/orders`
+- 商品服务：`http://localhost:8082/products`
+- 订单服务：`http://localhost:8083/orders`
 
 ## 如果你要改成 MySQL
 

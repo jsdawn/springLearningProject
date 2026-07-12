@@ -1,23 +1,251 @@
 package com.example.orderservice.service.impl;
 
+import com.example.common.response.ApiResponse;
+import com.example.orderservice.client.ProductSummary;
+import com.example.orderservice.client.UserSummary;
+import com.example.orderservice.dto.CreateOrderItemRequest;
+import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.entity.OrderInfo;
+import com.example.orderservice.entity.OrderItem;
 import com.example.orderservice.mapper.OrderMapper;
 import com.example.orderservice.service.OrderService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private final OrderMapper orderMapper;
+    private static final Integer ORDER_STATUS_CREATED = 1;
+    private static final Integer ORDER_STATUS_CANCELLED = 2;
+    private static final Integer USER_STATUS_ENABLED = 1;
+    private static final Integer PRODUCT_STATUS_ON_SALE = 1;
+    private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    public OrderServiceImpl(OrderMapper orderMapper) {
+    private final OrderMapper orderMapper;
+    private final RestTemplate restTemplate;
+    private final String userServiceBaseUrl;
+    private final String productServiceBaseUrl;
+
+    public OrderServiceImpl(OrderMapper orderMapper,
+                            RestTemplate restTemplate,
+                            @Value("${service.user-service.base-url}") String userServiceBaseUrl,
+                            @Value("${service.product-service.base-url}") String productServiceBaseUrl) {
         this.orderMapper = orderMapper;
+        this.restTemplate = restTemplate;
+        this.userServiceBaseUrl = userServiceBaseUrl;
+        this.productServiceBaseUrl = productServiceBaseUrl;
     }
 
     @Override
-    public List<OrderInfo> listOrders() {
-        return orderMapper.findAll();
+    public List<OrderInfo> listOrders(String orderNo, Long userId) {
+        return orderMapper.findAll(orderNo, userId);
+    }
+
+    @Override
+    public OrderInfo getOrderById(Long id) {
+        OrderInfo orderInfo = orderMapper.findById(id);
+        if (orderInfo == null) {
+            throw new IllegalArgumentException("Order not found, id=" + id);
+        }
+        orderInfo.setItems(orderMapper.findItemsByOrderId(id));
+        return orderInfo;
+    }
+
+    @Override
+    @Transactional
+    public OrderInfo createOrder(CreateOrderRequest request) {
+        validateCreateRequest(request);
+
+        UserSummary user = getUserById(request.getUserId());
+        if (!USER_STATUS_ENABLED.equals(user.getStatus())) {
+            throw new IllegalStateException("User is disabled, userId=" + request.getUserId());
+        }
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<CreateOrderItemRequest> deductedItems = new ArrayList<>();
+
+        try {
+            for (CreateOrderItemRequest itemRequest : request.getItems()) {
+                ProductSummary product = getProductById(itemRequest.getProductId());
+                validateProductForOrder(product, itemRequest.getQuantity());
+
+                adjustProductStock(product.getId(), -itemRequest.getQuantity());
+                deductedItems.add(itemRequest);
+
+                OrderItem orderItem = buildOrderItem(product, itemRequest.getQuantity());
+                orderItems.add(orderItem);
+                totalAmount = totalAmount.add(orderItem.getAmount());
+            }
+
+            OrderInfo orderInfo = new OrderInfo();
+            orderInfo.setOrderNo(generateOrderNo());
+            orderInfo.setUserId(request.getUserId());
+            orderInfo.setTotalAmount(totalAmount);
+            orderInfo.setStatus(ORDER_STATUS_CREATED);
+
+            int orderRows = orderMapper.insert(orderInfo);
+            if (orderRows <= 0 || orderInfo.getId() == null) {
+                throw new IllegalStateException("Create order failed");
+            }
+
+            for (OrderItem orderItem : orderItems) {
+                orderItem.setOrderId(orderInfo.getId());
+            }
+
+            int itemRows = orderMapper.batchInsertItems(orderItems);
+            if (itemRows != orderItems.size()) {
+                throw new IllegalStateException("Create order items failed, orderId=" + orderInfo.getId());
+            }
+
+            return getOrderById(orderInfo.getId());
+        } catch (RuntimeException e) {
+            rollbackAdjustedStock(deductedItems);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public OrderInfo cancelOrder(Long id) {
+        OrderInfo orderInfo = getOrderById(id);
+        if (ORDER_STATUS_CANCELLED.equals(orderInfo.getStatus())) {
+            throw new IllegalStateException("Order already cancelled, id=" + id);
+        }
+
+        int rows = orderMapper.updateStatusById(id, ORDER_STATUS_CANCELLED);
+        if (rows <= 0) {
+            throw new IllegalStateException("Cancel order failed, id=" + id);
+        }
+        return getOrderById(id);
+    }
+
+    private void validateCreateRequest(CreateOrderRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getUserId() == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Order items are required");
+        }
+
+        for (CreateOrderItemRequest item : request.getItems()) {
+            if (item.getProductId() == null) {
+                throw new IllegalArgumentException("productId is required");
+            }
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("quantity must be greater than 0");
+            }
+        }
+    }
+
+    private void validateProductForOrder(ProductSummary product, Integer quantity) {
+        if (!PRODUCT_STATUS_ON_SALE.equals(product.getStatus())) {
+            throw new IllegalStateException("Product is off sale, productId=" + product.getId());
+        }
+        if (product.getStock() == null || product.getStock() < quantity) {
+            throw new IllegalStateException("Insufficient stock, productId=" + product.getId());
+        }
+        if (product.getPrice() == null) {
+            throw new IllegalStateException("Product price is missing, productId=" + product.getId());
+        }
+    }
+
+    private OrderItem buildOrderItem(ProductSummary product, Integer quantity) {
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProductId(product.getId());
+        orderItem.setProductName(product.getProductName());
+        orderItem.setProductPrice(product.getPrice());
+        orderItem.setQuantity(quantity);
+        orderItem.setAmount(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        return orderItem;
+    }
+
+    private String generateOrderNo() {
+        return "ORD" + LocalDateTime.now().format(ORDER_NO_TIME_FORMATTER) + Math.abs(System.nanoTime() % 1000);
+    }
+
+    private void rollbackAdjustedStock(List<CreateOrderItemRequest> deductedItems) {
+        for (CreateOrderItemRequest item : deductedItems) {
+            try {
+                adjustProductStock(item.getProductId(), item.getQuantity());
+            } catch (RuntimeException ignored) {
+                // Best effort rollback because current stage does not introduce distributed transactions.
+            }
+        }
+    }
+
+    private UserSummary getUserById(Long userId) {
+        try {
+            ApiResponse<UserSummary> response = restTemplate.exchange(
+                    userServiceBaseUrl + "/users/{id}",
+                    org.springframework.http.HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<ApiResponse<UserSummary>>() {
+                    },
+                    userId
+            ).getBody();
+            return extractRemoteData(response, "User");
+        } catch (RestClientException e) {
+            throw new IllegalStateException("Call user-service failed");
+        }
+    }
+
+    private ProductSummary getProductById(Long productId) {
+        try {
+            ApiResponse<ProductSummary> response = restTemplate.exchange(
+                    productServiceBaseUrl + "/products/{id}",
+                    org.springframework.http.HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<ApiResponse<ProductSummary>>() {
+                    },
+                    productId
+            ).getBody();
+            return extractRemoteData(response, "Product");
+        } catch (RestClientException e) {
+            throw new IllegalStateException("Call product-service failed");
+        }
+    }
+
+    private void adjustProductStock(Long productId, Integer delta) {
+        try {
+            ApiResponse<ProductSummary> response = restTemplate.exchange(
+                    productServiceBaseUrl + "/products/{id}/stock?delta={delta}",
+                    org.springframework.http.HttpMethod.PATCH,
+                    null,
+                    new ParameterizedTypeReference<ApiResponse<ProductSummary>>() {
+                    },
+                    productId,
+                    delta
+            ).getBody();
+            extractRemoteData(response, "Product");
+        } catch (RestClientException e) {
+            throw new IllegalStateException("Call product-service stock API failed, productId=" + productId);
+        }
+    }
+
+    private <T> T extractRemoteData(ApiResponse<T> response, String resourceName) {
+        if (response == null) {
+            throw new IllegalStateException(resourceName + " service returned empty response");
+        }
+        if (response.getCode() == null || response.getCode() != 200) {
+            throw new IllegalStateException(response.getMessage());
+        }
+        if (response.getData() == null) {
+            throw new IllegalArgumentException(resourceName + " not found");
+        }
+        return response.getData();
     }
 }

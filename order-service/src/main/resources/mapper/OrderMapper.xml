@@ -7,8 +7,91 @@
     <select id="findAll" resultType="com.example.orderservice.entity.OrderInfo">
         SELECT id,
                order_no AS orderNo,
-               amount
+               user_id AS userId,
+               total_amount AS totalAmount,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
         FROM orders
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
         ORDER BY id
     </select>
+
+    <select id="findById" resultType="com.example.orderservice.entity.OrderInfo">
+        SELECT id,
+               order_no AS orderNo,
+               user_id AS userId,
+               total_amount AS totalAmount,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM orders
+        WHERE id = #{id}
+    </select>
+
+    <select id="findItemsByOrderId" resultType="com.example.orderservice.entity.OrderItem">
+        SELECT id,
+               order_id AS orderId,
+               product_id AS productId,
+               product_name AS productName,
+               product_price AS productPrice,
+               quantity,
+               amount,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM order_item
+        WHERE order_id = #{orderId}
+        ORDER BY id
+    </select>
+
+    <insert id="insert" parameterType="com.example.orderservice.entity.OrderInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (
+            order_no,
+            user_id,
+            total_amount,
+            status
+        )
+        VALUES (
+            #{orderNo},
+            #{userId},
+            #{totalAmount},
+            #{status}
+        )
+    </insert>
+
+    <insert id="batchInsertItems">
+        INSERT INTO order_item (
+            order_id,
+            product_id,
+            product_name,
+            product_price,
+            quantity,
+            amount
+        )
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (
+            #{item.orderId},
+            #{item.productId},
+            #{item.productName},
+            #{item.productPrice},
+            #{item.quantity},
+            #{item.amount}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateStatusById">
+        UPDATE orders
+        SET status = #{status},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
 </mapper>
