@@ -1,5 +1,6 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.common.ApiResponse;
 import com.example.userservice.entity.User;
 import com.example.userservice.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,29 +26,29 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> list() {
-        return userService.listUsers();
+    public ApiResponse<List<User>> list() {
+        return ApiResponse.success(userService.listUsers());
     }
 
     @GetMapping("/{id}")
-    public User detail(@PathVariable Long id) {
-        return userService.getUserById(id);
+    public ApiResponse<User> detail(@PathVariable Long id) {
+        return ApiResponse.success(userService.getUserById(id));
     }
 
     @PostMapping
-    public User create(@RequestBody User user) {
+    public ApiResponse<User> create(@RequestBody User user) {
         user.setId(null);
-        return userService.createUser(user);
+        return ApiResponse.success("User created successfully", userService.createUser(user));
     }
 
     @PutMapping("/{id}")
-    public User update(@PathVariable Long id, @RequestBody User user) {
+    public ApiResponse<User> update(@PathVariable Long id, @RequestBody User user) {
         user.setId(id);
-        return userService.updateUser(user);
+        return ApiResponse.success("User updated successfully", userService.updateUser(user));
     }
 
     @PatchMapping("/{id}/status")
-    public void changeStatus(@PathVariable Long id, @RequestParam Integer status) {
-        userService.changeUserStatus(id, status);
+    public ApiResponse<User> changeStatus(@PathVariable Long id, @RequestParam Integer status) {
+        return ApiResponse.success("User status updated successfully", userService.changeUserStatus(id, status));
     }
 }

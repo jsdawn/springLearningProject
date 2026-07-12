@@ -23,7 +23,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUserById(Long id) {
-        return userMapper.findById(id);
+        User user = userMapper.findById(id);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found, id=" + id);
+        }
+        return user;
     }
 
     @Override
@@ -45,7 +49,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changeUserStatus(Long id, Integer status) {
-        userMapper.updateStatusById(id, status);
+    public User changeUserStatus(Long id, Integer status) {
+        int rows = userMapper.updateStatusById(id, status);
+        if (rows <= 0) {
+            throw new IllegalStateException("Change user status failed, id=" + id);
+        }
+        return getUserById(id);
     }
 }

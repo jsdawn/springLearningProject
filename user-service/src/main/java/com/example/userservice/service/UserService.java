@@ -14,5 +14,5 @@ public interface UserService {
 
     User updateUser(User user);
 
-    void changeUserStatus(Long id, Integer status);
+    User changeUserStatus(Long id, Integer status);
 }
