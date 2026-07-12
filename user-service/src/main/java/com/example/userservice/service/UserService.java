@@ -9,4 +9,10 @@ public interface UserService {
     List<User> listUsers();
 
     User getUserById(Long id);
+
+    User createUser(User user);
+
+    User updateUser(User user);
+
+    void changeUserStatus(Long id, Integer status);
 }

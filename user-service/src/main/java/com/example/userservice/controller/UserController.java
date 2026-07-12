@@ -36,16 +36,18 @@ public class UserController {
 
     @PostMapping
     public User create(@RequestBody User user) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        user.setId(null);
+        return userService.createUser(user);
     }
 
     @PutMapping("/{id}")
     public User update(@PathVariable Long id, @RequestBody User user) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        user.setId(id);
+        return userService.updateUser(user);
     }
 
     @PatchMapping("/{id}/status")
     public void changeStatus(@PathVariable Long id, @RequestParam Integer status) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        userService.changeUserStatus(id, status);
     }
 }

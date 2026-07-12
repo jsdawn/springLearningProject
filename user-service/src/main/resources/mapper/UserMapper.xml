@@ -31,4 +31,40 @@
         FROM users 
         WHERE id = #{id}
     </select>
+
+    <insert id="insert" parameterType="com.example.userservice.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            username,
+            nickname,
+            phone,
+            email,
+            user_type,
+            status
+        )
+        VALUES (
+            #{username},
+            #{nickname},
+            #{phone},
+            #{email},
+            #{userType},
+            #{status}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.example.userservice.entity.User">
+        UPDATE users
+        SET username = #{username},
+            nickname = #{nickname},
+            phone = #{phone},
+            email = #{email},
+            user_type = #{userType},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusById">
+        UPDATE users
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
 </mapper>
