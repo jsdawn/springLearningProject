@@ -17,4 +17,18 @@
         FROM users
         ORDER BY id
     </select>
+
+    <select id="findById" resultType="com.example.userservice.entity.User">
+        SELECT id,
+               username,
+               nickname,
+               phone,
+               email,
+               user_type AS userType,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM users 
+        WHERE id = #{id}
+    </select>
 </mapper>

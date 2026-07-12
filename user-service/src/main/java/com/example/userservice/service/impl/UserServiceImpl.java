@@ -20,4 +20,9 @@ public class UserServiceImpl implements UserService {
     public List<User> listUsers() {
         return userMapper.findAll();
     }
+
+    @Override
+    public User getUserById(Long id) {
+        return userMapper.findById(id);
+    }
 }
