@@ -20,7 +20,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -48,7 +50,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderInfo> listOrders(String orderNo, Long userId) {
-        return orderMapper.findAll(orderNo, userId);
+        List<OrderInfo> orders = orderMapper.findAll(orderNo, userId);
+        fillOrderItems(orders);
+        return orders;
     }
 
     @Override
@@ -64,52 +68,65 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderInfo createOrder(CreateOrderRequest request) {
+        // 先校验下单请求本身是否合法，比如 userId、商品列表、购买数量是否缺失。
         validateCreateRequest(request);
 
+        // 订单服务不自己维护用户主数据，所以先远程调用 user-service 校验用户是否存在且可用。
         UserSummary user = getUserById(request.getUserId());
         if (!USER_STATUS_ENABLED.equals(user.getStatus())) {
             throw new IllegalStateException("User is disabled, userId=" + request.getUserId());
         }
 
+        // orderItems 用来暂存待落库的订单明细，totalAmount 累加订单总金额。
+        // deductedItems 记录已经成功扣减过库存的商品，后面如果失败可以尽量回补库存。
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<CreateOrderItemRequest> deductedItems = new ArrayList<>();
 
         try {
             for (CreateOrderItemRequest itemRequest : request.getItems()) {
+                // 逐个商品校验：是否存在、是否上架、库存是否充足。
                 ProductSummary product = getProductById(itemRequest.getProductId());
                 validateProductForOrder(product, itemRequest.getQuantity());
 
+                // 先调用商品服务扣减库存，扣减成功后把这条记录记下来，便于异常时回滚。
                 adjustProductStock(product.getId(), -itemRequest.getQuantity());
                 deductedItems.add(itemRequest);
 
+                // 把商品快照写进订单明细，避免后续商品名称或价格变化影响历史订单。
                 OrderItem orderItem = buildOrderItem(product, itemRequest.getQuantity());
                 orderItems.add(orderItem);
                 totalAmount = totalAmount.add(orderItem.getAmount());
             }
 
+            // 先构造订单主表数据。
             OrderInfo orderInfo = new OrderInfo();
             orderInfo.setOrderNo(generateOrderNo());
             orderInfo.setUserId(request.getUserId());
             orderInfo.setTotalAmount(totalAmount);
             orderInfo.setStatus(ORDER_STATUS_CREATED);
 
+            // 先保存订单主表，拿到数据库生成的订单 ID。
             int orderRows = orderMapper.insert(orderInfo);
             if (orderRows <= 0 || orderInfo.getId() == null) {
                 throw new IllegalStateException("Create order failed");
             }
 
+            // 把刚生成的订单 ID 回填到每条订单明细里，建立主从关系。
             for (OrderItem orderItem : orderItems) {
                 orderItem.setOrderId(orderInfo.getId());
             }
 
+            // 再批量保存订单明细，如果保存条数不一致，说明创建不完整，直接抛异常。
             int itemRows = orderMapper.batchInsertItems(orderItems);
             if (itemRows != orderItems.size()) {
                 throw new IllegalStateException("Create order items failed, orderId=" + orderInfo.getId());
             }
 
+            // 最后重新查一次数据库，返回包含主表和明细的最新订单结果。
             return getOrderById(orderInfo.getId());
         } catch (RuntimeException e) {
+            // 当前阶段还没有分布式事务，所以这里做一次“尽力而为”的库存回补。
             rollbackAdjustedStock(deductedItems);
             throw e;
         }
@@ -247,5 +264,33 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException(resourceName + " not found");
         }
         return response.getData();
+    }
+
+    private void fillOrderItems(List<OrderInfo> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+
+        List<Long> orderIds = new ArrayList<>();
+        for (OrderInfo order : orders) {
+            orderIds.add(order.getId());
+            order.setItems(new ArrayList<OrderItem>());
+        }
+
+        List<OrderItem> items = orderMapper.findItemsByOrderIds(orderIds);
+        Map<Long, List<OrderItem>> itemsByOrderId = new HashMap<>();
+        for (OrderItem item : items) {
+            if (!itemsByOrderId.containsKey(item.getOrderId())) {
+                itemsByOrderId.put(item.getOrderId(), new ArrayList<OrderItem>());
+            }
+            itemsByOrderId.get(item.getOrderId()).add(item);
+        }
+
+        for (OrderInfo order : orders) {
+            List<OrderItem> orderItems = itemsByOrderId.get(order.getId());
+            if (orderItems != null) {
+                order.setItems(orderItems);
+            }
+        }
     }
 }
