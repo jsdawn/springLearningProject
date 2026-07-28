@@ -161,7 +161,7 @@ DB_PASSWORD=
 - `.env` 已加入 `.gitignore`，不会默认提交到仓库
 - 如果你的 MySQL 用户有密码，把 `DB_PASSWORD` 改成你的实际密码
 
-### 5. 用户级 `settings.json` 示例
+### 5. 工作区 `settings.json` 示例
 
 ```jsonc
 // Java语言服务器运行JDK（当前示例使用 JDK 1.8）
@@ -189,7 +189,7 @@ DB_PASSWORD=
 
 说明：
 
-- 这里是用户级配置，不建议提交到 Git
+- 这里是工作区配置，不建议提交到 Git
 - `path` 请改成你自己机器上的 JDK 路径
 - 如果你本地同时装了多个 JDK，建议确认项目运行 JDK 与这里的配置保持一致
 
