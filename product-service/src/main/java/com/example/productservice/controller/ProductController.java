@@ -31,7 +31,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Product> detail(@PathVariable Long id) {
+    public ApiResponse<Product> detail(@PathVariable("id") Long id) {
         return ApiResponse.success(productService.getProductById(id));
     }
 
@@ -42,18 +42,20 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Product> update(@PathVariable Long id, @RequestBody Product product) {
+    public ApiResponse<Product> update(@PathVariable("id") Long id, @RequestBody Product product) {
         product.setId(id);
         return ApiResponse.success("Product updated successfully", productService.updateProduct(product));
     }
 
     @PatchMapping("/{id}/status")
-    public ApiResponse<Product> changeStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public ApiResponse<Product> changeStatus(@PathVariable("id") Long id,
+                                             @RequestParam("status") Integer status) {
         return ApiResponse.success("Product status updated successfully", productService.changeProductStatus(id, status));
     }
 
-    @PatchMapping("/{id}/stock")
-    public ApiResponse<Product> adjustStock(@PathVariable Long id, @RequestParam Integer delta) {
+    @PostMapping("/{id}/stock")
+    public ApiResponse<Product> adjustStock(@PathVariable("id") Long id,
+                                            @RequestParam("delta") Integer delta) {
         return ApiResponse.success("Product stock updated successfully", productService.adjustProductStock(id, delta));
     }
 }

@@ -31,7 +31,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<User> detail(@PathVariable Long id) {
+    public ApiResponse<User> detail(@PathVariable("id") Long id) {
         return ApiResponse.success(userService.getUserById(id));
     }
 
@@ -42,13 +42,14 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<User> update(@PathVariable Long id, @RequestBody User user) {
+    public ApiResponse<User> update(@PathVariable("id") Long id, @RequestBody User user) {
         user.setId(id);
         return ApiResponse.success("User updated successfully", userService.updateUser(user));
     }
 
     @PatchMapping("/{id}/status")
-    public ApiResponse<User> changeStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public ApiResponse<User> changeStatus(@PathVariable("id") Long id,
+                                          @RequestParam("status") Integer status) {
         return ApiResponse.success("User status updated successfully", userService.changeUserStatus(id, status));
     }
 }

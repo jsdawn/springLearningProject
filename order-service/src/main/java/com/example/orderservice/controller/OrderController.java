@@ -26,13 +26,13 @@ public class OrderController {
     }
 
     @GetMapping
-    public ApiResponse<List<OrderInfo>> list(@RequestParam(required = false) String orderNo,
-                                             @RequestParam(required = false) Long userId) {
+    public ApiResponse<List<OrderInfo>> list(@RequestParam(value = "orderNo", required = false) String orderNo,
+                                             @RequestParam(value = "userId", required = false) Long userId) {
         return ApiResponse.success(orderService.listOrders(orderNo, userId));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<OrderInfo> detail(@PathVariable Long id) {
+    public ApiResponse<OrderInfo> detail(@PathVariable("id") Long id) {
         return ApiResponse.success(orderService.getOrderById(id));
     }
 
@@ -42,7 +42,7 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/cancel")
-    public ApiResponse<OrderInfo> cancel(@PathVariable Long id) {
+    public ApiResponse<OrderInfo> cancel(@PathVariable("id") Long id) {
         return ApiResponse.success("Order cancelled successfully", orderService.cancelOrder(id));
     }
 }

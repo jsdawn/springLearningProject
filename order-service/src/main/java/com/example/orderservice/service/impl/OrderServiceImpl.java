@@ -7,14 +7,12 @@ import com.example.orderservice.dto.CreateOrderItemRequest;
 import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.entity.OrderInfo;
 import com.example.orderservice.entity.OrderItem;
+import com.example.orderservice.feign.ProductFeignClient;
+import com.example.orderservice.feign.UserFeignClient;
 import com.example.orderservice.mapper.OrderMapper;
 import com.example.orderservice.service.OrderService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,18 +32,15 @@ public class OrderServiceImpl implements OrderService {
     private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final OrderMapper orderMapper;
-    private final RestTemplate restTemplate;
-    private final String userServiceBaseUrl;
-    private final String productServiceBaseUrl;
+    private final UserFeignClient userFeignClient;
+    private final ProductFeignClient productFeignClient;
 
     public OrderServiceImpl(OrderMapper orderMapper,
-                            RestTemplate restTemplate,
-                            @Value("${service.user-service.base-url}") String userServiceBaseUrl,
-                            @Value("${service.product-service.base-url}") String productServiceBaseUrl) {
+                            UserFeignClient userFeignClient,
+                            ProductFeignClient productFeignClient) {
         this.orderMapper = orderMapper;
-        this.restTemplate = restTemplate;
-        this.userServiceBaseUrl = userServiceBaseUrl;
-        this.productServiceBaseUrl = productServiceBaseUrl;
+        this.userFeignClient = userFeignClient;
+        this.productFeignClient = productFeignClient;
     }
 
     @Override
@@ -205,52 +200,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private UserSummary getUserById(Long userId) {
-        try {
-            ApiResponse<UserSummary> response = restTemplate.exchange(
-                    userServiceBaseUrl + "/users/{id}",
-                    org.springframework.http.HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<ApiResponse<UserSummary>>() {
-                    },
-                    userId
-            ).getBody();
-            return extractRemoteData(response, "User");
-        } catch (RestClientException e) {
-            throw new IllegalStateException("Call user-service failed");
-        }
+        return extractRemoteData(userFeignClient.getUserById(userId), "User");
     }
 
     private ProductSummary getProductById(Long productId) {
-        try {
-            ApiResponse<ProductSummary> response = restTemplate.exchange(
-                    productServiceBaseUrl + "/products/{id}",
-                    org.springframework.http.HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<ApiResponse<ProductSummary>>() {
-                    },
-                    productId
-            ).getBody();
-            return extractRemoteData(response, "Product");
-        } catch (RestClientException e) {
-            throw new IllegalStateException("Call product-service failed");
-        }
+        return extractRemoteData(productFeignClient.getProductById(productId), "Product");
     }
 
     private void adjustProductStock(Long productId, Integer delta) {
-        try {
-            ApiResponse<ProductSummary> response = restTemplate.exchange(
-                    productServiceBaseUrl + "/products/{id}/stock?delta={delta}",
-                    org.springframework.http.HttpMethod.PATCH,
-                    null,
-                    new ParameterizedTypeReference<ApiResponse<ProductSummary>>() {
-                    },
-                    productId,
-                    delta
-            ).getBody();
-            extractRemoteData(response, "Product");
-        } catch (RestClientException e) {
-            throw new IllegalStateException("Call product-service stock API failed, productId=" + productId);
-        }
+        extractRemoteData(productFeignClient.adjustStock(productId, delta), "Product");
     }
 
     private <T> T extractRemoteData(ApiResponse<T> response, String resourceName) {

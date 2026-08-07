@@ -26,12 +26,6 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.orderservice.entity
 
-service:
-  user-service:
-    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
-  product-service:
-    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8082}
-
 management:
   endpoints:
     web:
