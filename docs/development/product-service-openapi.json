@@ -7,6 +7,10 @@
   },
   "servers": [
     {
+      "url": "http://localhost:8080/api/product",
+      "description": "本地网关(商品服务)"
+    },
+    {
       "url": "http://localhost:8082",
       "description": "本地商品服务"
     }

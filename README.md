@@ -7,6 +7,7 @@
 ```text
 springProject
 ├─ pom.xml                  父工程
+├─ gateway-service          网关服务（Spring Cloud Gateway / WebFlux）
 ├─ user-service             用户服务
 ├─ product-service          商品服务
 └─ order-service            订单服务
@@ -18,6 +19,15 @@ springProject
 - Maven 3.6+
 
 ## 模块说明
+
+### 0. gateway-service
+
+- 启动类：`com.example.gatewayservice.GatewayServiceApplication`
+- 端口：`8080`
+- 路由前缀：
+  - `/api/user/**` → user-service
+  - `/api/product/**` → product-service
+  - `/api/order/**` → order-service
 
 ### 1. user-service
 
@@ -61,7 +71,7 @@ springProject
 
 ## Nacos 配置与启动
 
-当前 `user-service`、`product-service`、`order-service` 均已集成 Nacos（2.5.3以下版本） 注册中心，用于服务发现。
+当前 `gateway-service`、`user-service`、`product-service`、`order-service` 均已集成 Nacos（2.5.3以下版本） 注册中心，用于服务发现。
 
 ### 1. 启动本地 Nacos
 
@@ -97,11 +107,12 @@ NACOS_GROUP=DEFAULT_GROUP
 ## 在 IDEA 中如何启动
 
 1. 以 Maven 项目方式打开根目录 `springProject`
-2. 等待父工程和三个子模块加载完成
+2. 等待父工程和各子模块加载完成
 3. 分别运行：
    - `UserServiceApplication`
    - `ProductServiceApplication`
    - `OrderServiceApplication`
+   - `GatewayServiceApplication`
 
 ## 在 Trae / VS Code 中如何启动
 
@@ -111,7 +122,7 @@ NACOS_GROUP=DEFAULT_GROUP
 
 ### 1. `.vscode/launch.json`
 
-用于在编辑器里直接启动三个微服务：
+用于在编辑器里直接启动各个微服务：
 
 ```json
 {

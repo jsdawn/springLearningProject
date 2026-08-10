@@ -7,6 +7,10 @@
   },
   "servers": [
     {
+      "url": "http://localhost:8080/api/user",
+      "description": "本地网关(用户服务)"
+    },
+    {
       "url": "http://localhost:8081",
       "description": "本地用户服务"
     }
