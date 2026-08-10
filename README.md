@@ -61,7 +61,7 @@ springProject
 
 ## Nacos 配置与启动
 
-当前 `user-service`、`product-service`、`order-service` 均已集成 Nacos 注册中心服务发现。
+当前 `user-service`、`product-service`、`order-service` 均已集成 Nacos（2.5.3以下版本） 注册中心，用于服务发现。
 
 ### 1. 启动本地 Nacos
 
