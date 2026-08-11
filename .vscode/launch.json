@@ -29,6 +29,16 @@
       "projectName": "user-service",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-GatewayServiceApplication<gateway-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.example.gatewayservice.GatewayServiceApplication",
+      "projectName": "gateway-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
