@@ -1,6 +1,8 @@
 package com.example.userservice.controller;
 
 import com.example.common.response.ApiResponse;
+import com.example.common.response.PageResult;
+import com.example.userservice.dto.UserPageQuery;
 import com.example.userservice.entity.User;
 import com.example.userservice.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,11 @@ public class UserController {
     @GetMapping
     public ApiResponse<List<User>> list() {
         return ApiResponse.success(userService.listUsers());
+    }
+
+    @GetMapping("/page")
+    public ApiResponse<PageResult<User>> page(UserPageQuery query) {
+        return ApiResponse.success(userService.pageUsers(query));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,7 @@
 package com.example.productservice.service.impl;
 
+import com.example.common.response.PageResult;
+import com.example.productservice.dto.ProductPageQuery;
 import com.example.productservice.entity.Product;
 import com.example.productservice.mapper.ProductMapper;
 import com.example.productservice.service.ProductService;
@@ -69,5 +71,27 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalStateException("Adjust product stock failed, id=" + id);
         }
         return getProductById(product.getId());
+    }
+
+    @Override
+    public PageResult<Product> pageProducts(ProductPageQuery query) {
+        int pageNum = query == null || query.getPageNum() == null ? 1 : query.getPageNum();
+        int pageSize = query == null || query.getPageSize() == null ? 10 : query.getPageSize();
+        if (pageNum <= 0) {
+            pageNum = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 10;
+        }
+
+        int offset = (pageNum - 1) * pageSize;
+        String keyword = query == null ? null : query.getKeyword();
+
+        long total = productMapper.countByKeyword(keyword);
+        if (total <= 0) {
+            return PageResult.empty(pageNum, pageSize);
+        }
+
+        return PageResult.of(productMapper.findPageByKeyword(keyword, offset, pageSize), total, pageNum, pageSize);
     }
 }

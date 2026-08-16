@@ -24,6 +24,40 @@
         ORDER BY id
     </select>
 
+    <select id="findPageByCondition" resultType="com.example.orderservice.entity.OrderInfo">
+        SELECT id,
+               order_no AS orderNo,
+               user_id AS userId,
+               total_amount AS totalAmount,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM orders
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY id
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM orders
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
+    </select>
+
     <select id="findById" resultType="com.example.orderservice.entity.OrderInfo">
         SELECT id,
                order_no AS orderNo,

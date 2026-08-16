@@ -1,5 +1,7 @@
 package com.example.userservice.service.impl;
 
+import com.example.common.response.PageResult;
+import com.example.userservice.dto.UserPageQuery;
 import com.example.userservice.entity.User;
 import com.example.userservice.mapper.UserMapper;
 import com.example.userservice.service.UserService;
@@ -55,5 +57,27 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateException("Change user status failed, id=" + id);
         }
         return getUserById(id);
+    }
+
+    @Override
+    public PageResult<User> pageUsers(UserPageQuery query) {
+        int pageNum = query == null || query.getPageNum() == null ? 1 : query.getPageNum();
+        int pageSize = query == null || query.getPageSize() == null ? 10 : query.getPageSize();
+        if (pageNum <= 0) {
+            pageNum = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 10;
+        }
+
+        int offset = (pageNum - 1) * pageSize;
+        String keyword = query == null ? null : query.getKeyword();
+
+        long total = userMapper.countByKeyword(keyword);
+        if (total <= 0) {
+            return PageResult.empty(pageNum, pageSize);
+        }
+
+        return PageResult.of(userMapper.findPageByKeyword(keyword, offset, pageSize), total, pageNum, pageSize);
     }
 }

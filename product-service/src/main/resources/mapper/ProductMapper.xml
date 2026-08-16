@@ -30,6 +30,37 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findPageByKeyword" resultType="com.example.productservice.entity.Product">
+        SELECT id,
+               product_name AS productName,
+               price,
+               stock,
+               status,
+               remark,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM products
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (product_name LIKE CONCAT('%', #{keyword}, '%')
+                OR remark LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByKeyword" resultType="long">
+        SELECT COUNT(1)
+        FROM products
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (product_name LIKE CONCAT('%', #{keyword}, '%')
+                OR remark LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
     <insert id="insert" parameterType="com.example.productservice.entity.Product" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO products (
             product_name,

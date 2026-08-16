@@ -1,6 +1,8 @@
 package com.example.productservice.controller;
 
 import com.example.common.response.ApiResponse;
+import com.example.common.response.PageResult;
+import com.example.productservice.dto.ProductPageQuery;
 import com.example.productservice.entity.Product;
 import com.example.productservice.service.ProductService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,11 @@ public class ProductController {
     @GetMapping
     public ApiResponse<List<Product>> list() {
         return ApiResponse.success(productService.listProducts());
+    }
+
+    @GetMapping("/page")
+    public ApiResponse<PageResult<Product>> page(ProductPageQuery query) {
+        return ApiResponse.success(productService.pageProducts(query));
     }
 
     @GetMapping("/{id}")

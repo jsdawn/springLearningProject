@@ -12,6 +12,19 @@ public interface OrderMapper {
 
     List<OrderInfo> findAll(@Param("orderNo") String orderNo, @Param("userId") Long userId);
 
+    /**
+     * 分页查询（带可选过滤条件）。
+     */
+    List<OrderInfo> findPageByCondition(@Param("orderNo") String orderNo,
+                                        @Param("userId") Long userId,
+                                        @Param("offset") int offset,
+                                        @Param("size") int size);
+
+    /**
+     * 统计总数（与分页查询使用同一组过滤条件）。
+     */
+    long countByCondition(@Param("orderNo") String orderNo, @Param("userId") Long userId);
+
     OrderInfo findById(Long id);
 
     List<OrderItem> findItemsByOrderId(Long orderId);

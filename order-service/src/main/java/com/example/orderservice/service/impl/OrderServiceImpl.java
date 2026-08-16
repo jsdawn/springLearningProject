@@ -1,10 +1,12 @@
 package com.example.orderservice.service.impl;
 
 import com.example.common.response.ApiResponse;
+import com.example.common.response.PageResult;
 import com.example.orderservice.client.ProductSummary;
 import com.example.orderservice.client.UserSummary;
 import com.example.orderservice.dto.CreateOrderItemRequest;
 import com.example.orderservice.dto.CreateOrderRequest;
+import com.example.orderservice.dto.OrderPageQuery;
 import com.example.orderservice.entity.OrderInfo;
 import com.example.orderservice.entity.OrderItem;
 import com.example.orderservice.feign.ProductFeignClient;
@@ -48,6 +50,31 @@ public class OrderServiceImpl implements OrderService {
         List<OrderInfo> orders = orderMapper.findAll(orderNo, userId);
         fillOrderItems(orders);
         return orders;
+    }
+
+    @Override
+    public PageResult<OrderInfo> pageOrders(OrderPageQuery query) {
+        int pageNum = query == null || query.getPageNum() == null ? 1 : query.getPageNum();
+        int pageSize = query == null || query.getPageSize() == null ? 10 : query.getPageSize();
+        if (pageNum <= 0) {
+            pageNum = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 10;
+        }
+
+        int offset = (pageNum - 1) * pageSize;
+        String orderNo = query == null ? null : query.getOrderNo();
+        Long userId = query == null ? null : query.getUserId();
+
+        long total = orderMapper.countByCondition(orderNo, userId);
+        if (total <= 0) {
+            return PageResult.empty(pageNum, pageSize);
+        }
+
+        List<OrderInfo> orders = orderMapper.findPageByCondition(orderNo, userId, offset, pageSize);
+        fillOrderItems(orders);
+        return PageResult.of(orders, total, pageNum, pageSize);
     }
 
     @Override

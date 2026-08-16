@@ -32,6 +32,38 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findPageByKeyword" resultType="com.example.userservice.entity.User">
+        SELECT id,
+               username,
+               nickname,
+               phone,
+               email,
+               user_type AS userType,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM users
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByKeyword" resultType="long">
+        SELECT COUNT(1)
+        FROM users
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
     <insert id="insert" parameterType="com.example.userservice.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
             username,
