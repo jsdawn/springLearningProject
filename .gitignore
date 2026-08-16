@@ -35,11 +35,13 @@ replay_pid*
 .sts4-cache/
 
 # IDE: VS Code / Trae
-.vscode/
+.vscode/*
+!.vscode/launch.json
 
 # Environment files
 .env
 .env.*
+!.env.example
 
 # OS files
 .DS_Store
