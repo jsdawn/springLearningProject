@@ -1,5 +1,8 @@
 package com.example.orderservice.dto;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+
 /**
  * 订单分页查询入参（GET QueryString）。
  *
@@ -10,11 +13,14 @@ public class OrderPageQuery {
     /**
      * 页码，默认 1
      */
+    @Min(value = 1, message = "页码最小为 1")
     private Integer pageNum = 1;
 
     /**
      * 每页条数，默认 10
      */
+    @Min(value = 1, message = "每页条数最小为 1")
+    @Max(value = 100, message = "每页条数最大为 100")
     private Integer pageSize = 10;
 
     /**
@@ -25,6 +31,7 @@ public class OrderPageQuery {
     /**
      * 用户 ID（精确）
      */
+    @Min(value = 1, message = "用户 ID 最小为 1")
     private Long userId;
 
     public Integer getPageNum() {

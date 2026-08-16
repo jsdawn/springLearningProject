@@ -6,6 +6,7 @@ import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.dto.OrderPageQuery;
 import com.example.orderservice.entity.OrderInfo;
 import com.example.orderservice.service.OrderService;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
+@Validated
 public class OrderController {
 
     private final OrderService orderService;
@@ -34,7 +37,7 @@ public class OrderController {
     }
 
     @GetMapping("/page")
-    public ApiResponse<PageResult<OrderInfo>> page(OrderPageQuery query) {
+    public ApiResponse<PageResult<OrderInfo>> page(@Valid OrderPageQuery query) {
         return ApiResponse.success(orderService.pageOrders(query));
     }
 
@@ -44,7 +47,7 @@ public class OrderController {
     }
 
     @PostMapping
-    public ApiResponse<OrderInfo> create(@RequestBody CreateOrderRequest request) {
+    public ApiResponse<OrderInfo> create(@Valid @RequestBody CreateOrderRequest request) {
         return ApiResponse.success("Order created successfully", orderService.createOrder(request));
     }
 

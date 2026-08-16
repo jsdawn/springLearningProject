@@ -5,6 +5,7 @@ import com.example.common.response.PageResult;
 import com.example.productservice.dto.ProductPageQuery;
 import com.example.productservice.entity.Product;
 import com.example.productservice.service.ProductService;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/products")
+@Validated
 public class ProductController {
 
     private final ProductService productService;
@@ -33,7 +36,7 @@ public class ProductController {
     }
 
     @GetMapping("/page")
-    public ApiResponse<PageResult<Product>> page(ProductPageQuery query) {
+    public ApiResponse<PageResult<Product>> page(@Valid ProductPageQuery query) {
         return ApiResponse.success(productService.pageProducts(query));
     }
 
@@ -43,13 +46,13 @@ public class ProductController {
     }
 
     @PostMapping
-    public ApiResponse<Product> create(@RequestBody Product product) {
+    public ApiResponse<Product> create(@Valid @RequestBody Product product) {
         product.setId(null);
         return ApiResponse.success("Product created successfully", productService.createProduct(product));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Product> update(@PathVariable("id") Long id, @RequestBody Product product) {
+    public ApiResponse<Product> update(@PathVariable("id") Long id, @Valid @RequestBody Product product) {
         product.setId(id);
         return ApiResponse.success("Product updated successfully", productService.updateProduct(product));
     }
