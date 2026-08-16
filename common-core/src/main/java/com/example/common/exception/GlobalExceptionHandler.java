@@ -1,11 +1,14 @@
 package com.example.common.exception;
 
 import com.example.common.response.ApiResponse;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -31,9 +34,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BindException.class)
     public ApiResponse<Void> handleBindException(BindException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
+                .map(error -> {
+                    String code = error.getCode();
+                    if (code != null && code.startsWith("typeMismatch")) {
+                        return error.getField() + " 参数类型不正确";
+                    }
+                    if (error.getDefaultMessage() != null && !error.getDefaultMessage().isEmpty()) {
+                        return error.getDefaultMessage();
+                    }
+                    return error.getField() + " 参数不合法";
+                })
                 .collect(Collectors.joining("; "));
         return ApiResponse.fail(400, message);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        return ApiResponse.fail(400, e.getName() + " 参数类型不正确");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ApiResponse<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+        return ApiResponse.fail(400, e.getParameterName() + " 参数不能为空");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ApiResponse<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        return ApiResponse.fail(400, "请求体格式错误");
     }
 
     /**

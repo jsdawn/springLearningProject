@@ -30,4 +30,6 @@ public interface UserMapper {
      * 统计总数（与分页查询使用同一组过滤条件）。
      */
     long countByKeyword(@Param("keyword") String keyword);
+
+    User findByUsername(@Param("username") String username);
 }

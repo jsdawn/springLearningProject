@@ -34,6 +34,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
+        User existed = userMapper.findByUsername(user.getUsername());
+        if (existed != null) {
+            throw new IllegalArgumentException("用户名已存在");
+        }
         int rows = userMapper.insert(user);
         if (rows <= 0 || user.getId() == null) {
             throw new IllegalStateException("Create user failed");
@@ -43,6 +47,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(User user) {
+        User existed = userMapper.findByUsername(user.getUsername());
+        if (existed != null && existed.getId() != null && !existed.getId().equals(user.getId())) {
+            throw new IllegalArgumentException("用户名已存在");
+        }
         int rows = userMapper.updateById(user);
         if (rows <= 0) {
             throw new IllegalStateException("Update user failed, id=" + user.getId());
