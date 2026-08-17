@@ -15,6 +15,17 @@ spring:
       encoding: UTF-8
       schema-locations: classpath:schema.sql
       data-locations: []
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    # 无密码配置
+    database: ${REDIS_DB:0}
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
   cloud:
     nacos:
       discovery:

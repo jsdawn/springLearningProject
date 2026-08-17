@@ -1,6 +1,8 @@
 package com.example.common.exception;
 
 import com.example.common.response.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 处理 @RequestBody 参数校验失败（Form/DTO 对象字段校验）
@@ -81,11 +85,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ApiResponse<Void> handleIllegalStateException(IllegalStateException e) {
+        log.error("业务状态异常", e);
         return ApiResponse.fail(500, e.getMessage());
     }
 
+    /**
+     * 兜底异常处理：记录完整堆栈到日志，避免异常被静默吞掉导致排查困难
+     */
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception e) {
+        log.error("未处理异常", e);
         return ApiResponse.fail(500, "Internal server error");
     }
 }
