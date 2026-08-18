@@ -17,8 +17,11 @@ public class ProductServiceImpl implements ProductService {
     /** 缓存Key统一规范：product:info:{productId} */
     private static final String CACHE_KEY_PREFIX = "product:info:";
 
-    /** 缓存过期时间：30分钟（Redis断电有丢失风险，仅缓存热点数据，不可替代MySQL持久存储） */
+    /** 缓存基础过期时间：30分钟（Redis断电有丢失风险，仅缓存热点数据，不可替代MySQL持久存储） */
     private static final long CACHE_EXPIRE_MINUTES = 30;
+
+    /** 缓存过期时间随机抖动上限：0~5分钟，打散过期时间点，防止缓存雪崩 */
+    private static final long CACHE_TTL_JITTER_MINUTES = 5;
 
     private final ProductMapper productMapper;
     private final RedisUtil redisUtil;
@@ -35,23 +38,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product getProductById(Long id) {
-        String key = CACHE_KEY_PREFIX + id;
-
-        // ① 先查询Redis缓存，命中直接返回
-        Object cached = redisUtil.get(key);
-        if (cached != null) {
-            return (Product) cached;
-        }
-
-        // ② 缓存未命中，查询MySQL
-        Product product = productMapper.findById(id);
+        // 缓存三防（穿透/击穿/雪崩）统一封装在 RedisUtil#getOrLoad：
+        // 未命中加互斥锁回源、DB不存在缓存空值标记、真值写入附加随机抖动TTL
+        Product product = redisUtil.getOrLoad(CACHE_KEY_PREFIX + id,
+                CACHE_EXPIRE_MINUTES, CACHE_TTL_JITTER_MINUTES, TimeUnit.MINUTES,
+                () -> productMapper.findById(id));
         if (product == null) {
             throw new IllegalArgumentException("Product not found, id=" + id);
         }
-
-        // ③ 查询成功写入Redis缓存，设置过期时间
-        redisUtil.set(key, product, CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
-
         return product;
     }
 
