@@ -129,6 +129,8 @@ redis-server
 ```bash
 # 连接 Redis（默认 127.0.0.1:6379）
 redis-cli
+# 监控 Redis（可选，新开终端）
+redis-cli monitor
 # 连通性测试，成功返回 PONG
 ping
 # 查看商品缓存
