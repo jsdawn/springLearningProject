@@ -32,6 +32,35 @@ spring:
         server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
+    sentinel:
+      # 启动即初始化 Sentinel 并连接控制台（默认懒加载：首次请求触发才连接）
+      eager: true
+      # 资源名携带 HTTP 方法前缀，如 GET:/products/{id}，便于区分同路径不同方法
+      http-method-specify: true
+      transport:
+        # Sentinel 控制台地址（控制台需单独部署，步骤见 docs/development/sentinel-integration.md）
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+        # 客户端与控制台通信的本地命令端口，同机多实例端口占用时会自动递增
+        port: 8719
+      # 规则持久化：统一从 Nacos 配置中心读取并监听变更（实时生效，无需重启），代码中不写死任何规则。
+      # 需在 Nacos 创建对应 dataId（JSON 格式），内容见 docs/development/sentinel-integration.md
+      datasource:
+        flow:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:}
+            group-id: ${NACOS_GROUP:DEFAULT_GROUP}
+            data-id: ${spring.application.name}-flow-rules
+            data-type: json
+            rule-type: flow
+        degrade:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:}
+            group-id: ${NACOS_GROUP:DEFAULT_GROUP}
+            data-id: ${spring.application.name}-degrade-rules
+            data-type: json
+            rule-type: degrade
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

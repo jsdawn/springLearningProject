@@ -1,5 +1,6 @@
 package com.example.common.exception;
 
+import com.alibaba.csp.sentinel.Tracer;
 import com.example.common.response.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,14 +79,22 @@ public class GlobalExceptionHandler {
         return ApiResponse.fail(400, message);
     }
 
+    /**
+     * 处理业务逻辑异常（如商品不存在），记录到 Sentinel 上下文以触发熔断降级统计
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ApiResponse<Void> handleIllegalArgumentException(IllegalArgumentException e) {
+        Tracer.trace(e);
         return ApiResponse.fail(400, e.getMessage());
     }
 
+    /**
+     * 处理业务状态异常（如数据库操作失败），记录到 Sentinel 上下文以触发熔断降级统计
+     */
     @ExceptionHandler(IllegalStateException.class)
     public ApiResponse<Void> handleIllegalStateException(IllegalStateException e) {
         log.error("业务状态异常", e);
+        Tracer.trace(e);
         return ApiResponse.fail(500, e.getMessage());
     }
 

@@ -32,6 +32,26 @@ spring:
             - Path=/api/order/**
           filters:
             - StripPrefix=2
+    sentinel:
+      # 启动即初始化 Sentinel 并连接控制台（默认懒加载：首次请求触发才连接）
+      eager: true
+      transport:
+        # Sentinel 控制台地址（控制台需单独部署，步骤见 docs/development/sentinel-integration.md）
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+        # 客户端与控制台通信的本地命令端口，同机多实例端口占用时会自动递增
+        port: 8719
+      # 网关流控规则持久化：从 Nacos 配置中心读取并监听变更（实时生效，无需重启）。
+      # 注意：网关使用 GatewayFlowRule（rule-type: gw-flow），resource 对应路由 id 或自定义 API 分组，
+      # 与普通微服务的 FlowRule 不同。dataId 内容见 docs/development/sentinel-integration.md
+      datasource:
+        gw-flow:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:}
+            group-id: ${NACOS_GROUP:DEFAULT_GROUP}
+            data-id: ${spring.application.name}-gw-flow-rules
+            data-type: json
+            rule-type: gw-flow
 
 management:
   endpoints:

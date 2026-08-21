@@ -34,6 +34,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+
+        <!-- Sentinel: 供 common-core 编写通用的限流/熔断统一返回处理器（SentinelBlockExceptionHandler），
+             各 Servlet 微服务通过依赖 common-core 传递引入，版本由父工程 spring-cloud-alibaba BOM 托管 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
     </dependencies>
 
 

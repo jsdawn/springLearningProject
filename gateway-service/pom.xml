@@ -29,6 +29,29 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
 
+        <!-- Sentinel 网关限流，版本由父工程 spring-cloud-alibaba BOM 托管 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Alibaba Sentinel Gateway 适配模块，
+             提供 SentinelSCGAutoConfiguration（自动注册 SentinelGatewayFilter /
+             SentinelGatewayBlockExceptionHandler）及 gw-flow / gw-api-group
+             规则的 JSON/XML Converter Bean（sentinel-json-gw-flow-converter 等），
+             同时传递引入 sentinel-spring-cloud-gateway-adapter，
+             网关场景必须引入，否则 gw-flow 数据源报 NoSuchBeanDefinitionException -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-alibaba-sentinel-gateway</artifactId>
+        </dependency>
+
+        <!-- Sentinel 规则持久化：从 Nacos 配置中心读取/监听网关流控规则，避免规则写死在代码或仅存于控制台内存 -->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-datasource-nacos</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>

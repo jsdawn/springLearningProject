@@ -47,6 +47,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Spring Cloud Alibaba 统一依赖管理：Nacos、Sentinel 相关构件版本均由该 BOM 托管，
+                 子模块引入时无需声明版本（SCA 2021.0.5.0 对应 Sentinel 1.8.6）。
+                 已托管的 Sentinel 构件包括：
+                 - com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel（限流/熔断降级 starter）
+                 - com.alibaba.csp:sentinel-datasource-nacos（规则持久化到 Nacos 配置中心）
+                 - com.alibaba.csp:sentinel-spring-cloud-gateway-adapter（网关限流适配器，gateway-service 使用） -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
