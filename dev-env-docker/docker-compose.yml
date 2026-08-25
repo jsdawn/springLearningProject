@@ -1,0 +1,33 @@
+services:
+  nacos:
+    image: nacos/nacos-server:v${NACOS_VERSION}
+    environment:
+      MODE: standalone
+    ports:
+      - "${NACOS_PORT}:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - nacos_data:/home/nacos/data
+      - nacos_logs:/home/nacos/logs
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+  sentinel:
+    image: bladex/sentinel-dashboard:${SENTINEL_VERSION}
+    ports:
+      - "${SENTINEL_PORT}:8858"
+    depends_on:
+      - nacos
+      - redis
+
+volumes:
+  nacos_data:
+  nacos_logs:
+  redis_data:
