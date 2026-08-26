@@ -1,4 +1,17 @@
 services:
+  mysql:
+    image: mysql:${MYSQL_VERSION}
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
   nacos:
     image: nacos/nacos-server:v${NACOS_VERSION}
     environment:
@@ -24,10 +37,12 @@ services:
     ports:
       - "${SENTINEL_PORT}:8858"
     depends_on:
+      - mysql
       - nacos
       - redis
 
 volumes:
+  mysql_data:
   nacos_data:
   nacos_logs:
   redis_data:

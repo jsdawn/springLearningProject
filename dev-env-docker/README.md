@@ -1,6 +1,6 @@
 # Dev Env (Docker)
 
-用于在本地调试时一键启动 Nacos / Redis / Sentinel，Java 项目仍在宿主机（IDEA）本地运行。
+用于在本地调试时一键启动 MySQL / Nacos / Redis / Sentinel，Java 项目仍在宿主机（IDEA）本地运行。
 
 ## 初始化
 
@@ -31,6 +31,7 @@ docker compose down
 
 ## 访问地址
 
+- MySQL: localhost:3306
 - Nacos: http://localhost:8848/nacos
 - Redis: localhost:6379
 - Sentinel Dashboard: http://localhost:8858
@@ -39,6 +40,7 @@ docker compose down
 
 当 Java 项目在宿主机运行时，统一使用 `localhost` 访问：
 
+- MySQL: `localhost:3306`
 - Nacos: `localhost:8848`
 - Redis: `localhost:6379`
 - Sentinel dashboard: `localhost:8858`
