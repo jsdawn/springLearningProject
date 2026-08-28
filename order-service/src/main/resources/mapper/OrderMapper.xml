@@ -146,4 +146,14 @@
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
+
+    <!-- 条件更新（乐观锁）：仅当前状态为 fromStatus 时才改为 toStatus。
+         用于超时关单，防止并发支付/取消导致的误关。影响行数 0 表示状态已被并发修改。 -->
+    <update id="updateStatusFromTo">
+        UPDATE orders
+        SET status = #{toStatus},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = #{fromStatus}
+    </update>
 </mapper>

@@ -13,6 +13,8 @@ import com.example.orderservice.feign.ProductFeignClient;
 import com.example.orderservice.feign.UserFeignClient;
 import com.example.orderservice.mapper.OrderMapper;
 import com.example.orderservice.service.OrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +29,12 @@ import java.util.Map;
 @Service
 public class OrderServiceImpl implements OrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
+
     private static final Integer ORDER_STATUS_CREATED = 1;
     private static final Integer ORDER_STATUS_CANCELLED = 2;
+    /** 超时关闭：下单后 30 分钟未支付，由死信消费者自动关闭（区别于用户主动取消的 2） */
+    private static final Integer ORDER_STATUS_TIMEOUT_CLOSED = 3;
     private static final Integer USER_STATUS_ENABLED = 1;
     private static final Integer PRODUCT_STATUS_ON_SALE = 1;
     private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -167,6 +173,58 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException("Cancel order failed, id=" + id);
         }
         return getOrderById(id);
+    }
+
+    @Override
+    @Transactional
+    public boolean closeExpiredOrder(Long id) {
+        // 先查订单当前状态。订单不存在、或已经不是【待支付】（可能已支付/已取消/已关闭），
+        // 都直接返回 false 幂等跳过，保证死信消息重复投递、或用户抢先支付等场景不产生副作用。
+        OrderInfo orderInfo = orderMapper.findById(id);
+        if (orderInfo == null) {
+            log.info("closeExpiredOrder skipped, order not found, id={}", id);
+            return false;
+        }
+        if (!ORDER_STATUS_CREATED.equals(orderInfo.getStatus())) {
+            log.info("closeExpiredOrder skipped, order not pending-pay, id={}, status={}",
+                    id, orderInfo.getStatus());
+            return false;
+        }
+
+        // 用"从 1 到 3"的条件更新做乐观锁：只有当前仍是待支付才会更新成功。
+        // 若并发的支付/取消已把状态改掉，这里影响行数为 0，同样幂等跳过，不会误关。
+        int rows = orderMapper.updateStatusFromTo(id, ORDER_STATUS_CREATED, ORDER_STATUS_TIMEOUT_CLOSED);
+        if (rows <= 0) {
+            log.info("closeExpiredOrder skipped by concurrent update, id={}", id);
+            return false;
+        }
+
+        // 关单成功后回补库存：把该订单占用的库存逐条加回商品服务。
+        // 与下单时"尽力而为"的回补策略保持一致（当前阶段未引入分布式事务）。
+        List<OrderItem> items = orderMapper.findItemsByOrderId(id);
+        rollbackStockForItems(items);
+
+        log.info("closeExpiredOrder success, order closed and stock restored, id={}, orderNo={}",
+                id, orderInfo.getOrderNo());
+        return true;
+    }
+
+    /**
+     * 按订单明细把库存加回商品服务（尽力而为，单条失败不影响其余条目）。
+     */
+    private void rollbackStockForItems(List<OrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        for (OrderItem item : items) {
+            try {
+                adjustProductStock(item.getProductId(), item.getQuantity());
+            } catch (RuntimeException e) {
+                // 回补失败仅记录日志，不阻断关单主流程（与下单失败回补的处理方式一致）。
+                log.error("Restore stock failed on closeExpiredOrder, productId={}, quantity={}",
+                        item.getProductId(), item.getQuantity(), e);
+            }
+        }
     }
 
     private void validateCreateRequest(CreateOrderRequest request) {

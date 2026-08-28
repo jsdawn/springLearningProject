@@ -1,6 +1,6 @@
 # Dev Env (Docker)
 
-用于在本地调试时一键启动 MySQL / Nacos / Redis / Sentinel，Java 项目仍在宿主机（IDEA）本地运行。
+用于在本地调试时一键启动 MySQL / Nacos / Redis / Sentinel / RabbitMQ，Java 项目仍在宿主机（IDEA）本地运行。
 
 ## 初始化
 
@@ -35,6 +35,7 @@ docker compose down
 - Nacos: http://localhost:8848/nacos
 - Redis: localhost:6379
 - Sentinel Dashboard: http://localhost:8858
+- RabbitMQ 管理台: http://localhost:15672（默认账号 `guest` / `guest`）
 
 ## 本地 Java 项目连接配置
 
@@ -44,6 +45,7 @@ docker compose down
 - Nacos: `localhost:8848`
 - Redis: `localhost:6379`
 - Sentinel dashboard: `localhost:8858`
+- RabbitMQ: `localhost:5672`（AMQP），管理台 `http://localhost:15672`
 
 ## 常用调试命令
 

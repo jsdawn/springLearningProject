@@ -41,8 +41,24 @@ services:
       - nacos
       - redis
 
+  # RabbitMQ（-management 镜像自带 Web 管理台 http://localhost:15672，默认 guest/guest）。
+  # order-service 用其死信延时队列实现"下单后 30 分钟未支付自动关单"。
+  rabbitmq:
+    image: rabbitmq:${RABBITMQ_VERSION}
+    environment:
+      TZ: Asia/Shanghai
+      # 首次初始化时生效的默认账号（卷已存在则沿用历史数据，不会重置密码）
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_PORT}:5672"        # AMQP 协议端口，应用连接用
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"  # 管理台端口，浏览器观察队列/消息用
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
 volumes:
   mysql_data:
   nacos_data:
   nacos_logs:
   redis_data:
+  rabbitmq_data:

@@ -15,6 +15,28 @@ spring:
       encoding: UTF-8
       schema-locations: classpath:schema.sql
       data-locations: []
+  # ==================== RabbitMQ 配置（订单超时关闭-死信延时队列） ====================
+  # 拓扑与回调见 com.example.orderservice.config.RabbitMqConfig，
+  # 整体方案说明见 docs/development/RabbitMQ死信延时关单集成说明.md
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    # 发布方确认（防消息丢失第一道）：correlated 异步回调模式，
+    # 消息成功送达 Broker 后触发 ConfirmCallback(ack=true)，Broker 内部异常时 ack=false 并携带原因
+    publisher-confirm-type: correlated
+    # 发布方退回（防消息丢失第二道）：消息到达 Broker 但无法路由到任何队列时，触发 ReturnsCallback
+    publisher-returns: true
+    listener:
+      simple:
+        # 手动 ACK（防消息丢失第三道）：消费者业务处理完成后显式 basicAck，
+        # 处理异常时 basicNack 重投；避免自动 ACK 下"消息取出即确认、处理失败即丢失"
+        acknowledge-mode: manual
+        # 每个消费者一次只持有 1 条未确认消息，处理完再拉下一条，
+        # 避免消息在本地堆积、宕机时大批量重投
+        prefetch: 1
   cloud:
     nacos:
       discovery:
@@ -61,6 +83,14 @@ feign:
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.orderservice.entity
+
+# ==================== 订单业务自定义配置 ====================
+order:
+  mq:
+    # 订单超时关闭延时时长：30 分钟 = 1800000 毫秒。
+    # 作为 order.delay.queue 的 x-message-ttl（队列级 TTL，即最长延时上限）；
+    # 发送消息时若单独指定了更短的消息级 TTL（测试接口场景），RabbitMQ 取两者中较短的生效
+    delay-ttl-ms: 1800000
 
 management:
   endpoints:
