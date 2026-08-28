@@ -69,93 +69,17 @@ springProject
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
-## Nacos 配置与启动
+## 依赖组件配置与启动
 
-当前 `gateway-service`、`user-service`、`product-service`、`order-service` 均已集成 Nacos（2.5.3以下版本） 注册中心，用于服务发现。
+运行项目前需要先启动 Nacos、Redis、Sentinel 等组件，详细安装、启动步骤与环境变量说明见各自文档：
 
-### 1. 启动本地 Nacos
-
-从 [Nacos GitHub Releases](https://github.com/alibaba/nacos/releases) 下载 Nacos Server 压缩包，解压后执行：
-
-```bash
-# Windows 单机模式启动
-startup.cmd -m standalone
-```
-
-启动成功后访问：`http://localhost:8848/nacos`（默认账号密码：nacos/nacos）
-
-### 2. Nacos 环境变量
-
-三个 Nacos 相关变量支持通过 `.env` 配置：
-
-| 变量 | 默认值 | 说明 |
+| 组件 | 用途 | 文档 |
 |---|---|---|
-| `NACOS_SERVER_ADDR` | `localhost:8848` | Nacos 服务地址 |
-| `NACOS_NAMESPACE` | （空） | 命名空间 ID，留空使用 public |
-| `NACOS_GROUP` | `DEFAULT_GROUP` | 服务分组名称 |
+| Nacos | 服务注册与发现、配置中心（规则持久化） | [docs/dev-env/nacos.md](docs/dev-env/nacos.md) |
+| Redis | 商品详情热点缓存 | [docs/dev-env/redis.md](docs/dev-env/redis.md) |
+| Sentinel | 限流 / 熔断降级控制台 | [docs/dev-env/sentinel.md](docs/dev-env/sentinel.md) |
 
-### 3. `.env` 文件补充示例
-
-如果你使用本地 Nacos 默认配置，无需额外配置。如需自定义，在 `.env` 中添加：
-
-```env
-NACOS_SERVER_ADDR=localhost:8848
-NACOS_NAMESPACE=
-NACOS_GROUP=DEFAULT_GROUP
-```
-
-## Redis 配置与启动
-
-当前 `product-service` 已集成 Redis 缓存（商品详情缓存，Key 规范：`product:info:{id}`，过期时间 30 分钟）。Redis 仅作热点缓存，断电丢失不影响业务，持久化以 MySQL 为准。
-
-### 1. 安装 Redis
-
-- Windows：从 [tporadowski/redis/releases](https://github.com/tporadowski/redis/releases) 下载 `.zip` 或 `.msi` 安装包，解压/安装后目录内含 `redis-server.exe` 和 `redis-cli.exe`
-- Linux：`sudo apt install redis-server`
-- macOS：`brew install redis`
-
-### 2. 启动 Redis 服务
-
-```bash
-# Windows：在解压目录执行（带配置文件启动）
-redis-server.exe redis.windows.conf
-
-# Linux / macOS
-redis-server
-```
-
-### 3. redis-cli 常用命令
-
-```bash
-# 连接 Redis（默认 127.0.0.1:6379）
-redis-cli
-# 监控 Redis（可选，新开终端）
-redis-cli monitor
-# 连通性测试，成功返回 PONG
-ping
-# 查看商品缓存
-get product:info:1
-# 查看剩余过期时间（秒）
-ttl product:info:1
-# 判断 key 是否存在（1 存在 / 0 不存在）
-exists product:info:1
-# 删除商品缓存
-del product:info:1
-# 查看全部 key（仅本地调试使用）
-keys *
-# 退出
-exit
-```
-
-### 4. Redis 环境变量
-
-三个 Redis 相关变量支持通过 `.env` 配置（当前无密码）：
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `REDIS_HOST` | `localhost` | Redis 服务地址 |
-| `REDIS_PORT` | `6379` | Redis 端口 |
-| `REDIS_DB` | `0` | 数据库索引 |
+也可以使用 Docker 一键统一启动以上组件（含 MySQL），见 [dev-env-docker/README.md](dev-env-docker/README.md)。
 
 ## 在 IDEA 中如何启动
 
