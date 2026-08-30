@@ -152,3 +152,23 @@ docker compose ps
 ```bash
 docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
 ```
+
+### 8) Nacos 9848/9849 端口绑定失败（Windows）
+
+如果启动报错类似：
+
+```text
+listen tcp 0.0.0.0:9848: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+```
+
+说明 Windows 将 9848/9849 所在端口区间设为保留端口（excluded port range），Docker 无法绑定。
+
+推荐做法：在 `.env` 中把 Nacos 相关端口整体挪到一个不冲突的段（保持 1000/1001 的偏移关系）：
+
+```env
+NACOS_PORT=18848
+NACOS_GRPC_PORT=19848
+NACOS_GRPC_PORT2=19849
+```
+
+同时确保本地 Java 项目使用 `NACOS_SERVER_ADDR=localhost:18848`。

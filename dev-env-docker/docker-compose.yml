@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:${MYSQL_VERSION}
+    image: mysql:${MYSQL_VERSION:-8.0}
     environment:
       TZ: Asia/Shanghai
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -8,34 +8,34 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
   nacos:
-    image: nacos/nacos-server:v${NACOS_VERSION}
+    image: nacos/nacos-server:v${NACOS_VERSION:-2.5.3}
     environment:
       MODE: standalone
     ports:
-      - "${NACOS_PORT}:8848"
-      - "9848:9848"
-      - "9849:9849"
+      - "${NACOS_PORT:-8848}:8848"
+      - "${NACOS_GRPC_PORT:-9848}:9848"
+      - "${NACOS_GRPC_PORT2:-9849}:9849"
     volumes:
       - nacos_data:/home/nacos/data
       - nacos_logs:/home/nacos/logs
 
   redis:
-    image: redis:${REDIS_VERSION}
+    image: redis:${REDIS_VERSION:-5.0.14}
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
 
   sentinel:
-    image: bladex/sentinel-dashboard:${SENTINEL_VERSION}
+    image: bladex/sentinel-dashboard:${SENTINEL_VERSION:-1.8.6}
     ports:
-      - "${SENTINEL_PORT}:8858"
+      - "${SENTINEL_PORT:-8858}:8858"
     depends_on:
       - mysql
       - nacos
@@ -44,15 +44,15 @@ services:
   # RabbitMQ（-management 镜像自带 Web 管理台 http://localhost:15672，默认 guest/guest）。
   # order-service 用其死信延时队列实现"下单后 30 分钟未支付自动关单"。
   rabbitmq:
-    image: rabbitmq:${RABBITMQ_VERSION}
+    image: rabbitmq:${RABBITMQ_VERSION:-3.12-management}
     environment:
       TZ: Asia/Shanghai
       # 首次初始化时生效的默认账号（卷已存在则沿用历史数据，不会重置密码）
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
     ports:
-      - "${RABBITMQ_PORT}:5672"        # AMQP 协议端口，应用连接用
-      - "${RABBITMQ_MANAGEMENT_PORT}:15672"  # 管理台端口，浏览器观察队列/消息用
+      - "${RABBITMQ_PORT:-5672}:5672"        # AMQP 协议端口，应用连接用
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"  # 管理台端口，浏览器观察队列/消息用
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
