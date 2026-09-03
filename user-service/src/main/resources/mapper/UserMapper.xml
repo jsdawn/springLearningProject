@@ -79,6 +79,37 @@
         LIMIT 1
     </select>
 
+    <select id="findCredentialByUsername" resultType="com.example.userservice.entity.UserCredential">
+        SELECT id,
+               username,
+               password,
+               status
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <insert id="insertRegister" parameterType="com.example.userservice.entity.UserRegister" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            username,
+            password,
+            nickname,
+            phone,
+            email,
+            user_type,
+            status
+        )
+        VALUES (
+            #{username},
+            #{password},
+            #{nickname},
+            #{phone},
+            #{email},
+            #{userType},
+            #{status}
+        )
+    </insert>
+
     <insert id="insert" parameterType="com.example.userservice.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
             username,

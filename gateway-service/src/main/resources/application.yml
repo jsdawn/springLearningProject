@@ -4,6 +4,10 @@ server:
 spring:
   main:
     web-application-type: reactive
+  config:
+    import:
+      - "optional:nacos:${spring.application.name}.yaml"
+      - "optional:nacos:common-jwt.yaml"
   application:
     name: gateway-service
   cloud:
@@ -12,6 +16,12 @@ spring:
         server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+        refresh-enabled: true
     gateway:
       routes:
         - id: user-service
@@ -52,6 +62,17 @@ spring:
             data-id: ${spring.application.name}-gw-flow-rules
             data-type: json
             rule-type: gw-flow
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    database: ${REDIS_DB:0}
+
+gateway:
+  auth:
+    whitelist:
+      - /api/user/auth/login
+      - /api/user/auth/register
 
 management:
   endpoints:

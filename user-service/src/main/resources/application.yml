@@ -2,6 +2,10 @@ server:
   port: 8081
 
 spring:
+  config:
+    import:
+      - "optional:nacos:${spring.application.name}.yaml"
+      - "optional:nacos:common-jwt.yaml"
   application:
     name: user-service
   datasource:
@@ -21,6 +25,12 @@ spring:
         server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+        refresh-enabled: true
     sentinel:
       # 启动即初始化 Sentinel 并连接控制台（默认懒加载：首次请求触发才连接）
       eager: true
@@ -50,6 +60,11 @@ spring:
             data-id: ${spring.application.name}-degrade-rules
             data-type: json
             rule-type: degrade
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    database: ${REDIS_DB:0}
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

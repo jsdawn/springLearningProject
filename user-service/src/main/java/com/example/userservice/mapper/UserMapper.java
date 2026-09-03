@@ -1,6 +1,8 @@
 package com.example.userservice.mapper;
 
 import com.example.userservice.entity.User;
+import com.example.userservice.entity.UserCredential;
+import com.example.userservice.entity.UserRegister;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -32,4 +34,8 @@ public interface UserMapper {
     long countByKeyword(@Param("keyword") String keyword);
 
     User findByUsername(@Param("username") String username);
+
+    UserCredential findCredentialByUsername(@Param("username") String username);
+
+    int insertRegister(UserRegister userRegister);
 }
