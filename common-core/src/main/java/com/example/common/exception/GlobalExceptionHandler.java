@@ -89,6 +89,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理未登录/登录已失效：由 LoginUserHolder.require() 系列方法在 ThreadLocal
+     * 上下文为空时抛出，常见于绕过网关直接调用、Token 已被黑名单踢掉等场景。
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ApiResponse<Void> handleUnauthorizedException(UnauthorizedException e) {
+        return ApiResponse.fail(401, e.getMessage());
+    }
+
+    /**
      * 处理业务状态异常（如数据库操作失败），记录到 Sentinel 上下文以触发熔断降级统计
      */
     @ExceptionHandler(IllegalStateException.class)

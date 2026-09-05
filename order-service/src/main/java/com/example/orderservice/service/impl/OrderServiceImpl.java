@@ -1,5 +1,6 @@
 package com.example.orderservice.service.impl;
 
+import com.example.common.context.LoginUserHolder;
 import com.example.common.response.ApiResponse;
 import com.example.common.response.PageResult;
 import com.example.orderservice.client.ProductSummary;
@@ -96,8 +97,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderInfo createOrder(CreateOrderRequest request) {
-        // 先校验下单请求本身是否合法，比如 userId、商品列表、购买数量是否缺失。
+        // 先校验下单请求本身是否合法，比如商品列表、购买数量是否缺失（userId 不再校验，
+        // 改由下文 LoginUserHolder 强制覆盖——避免客户端伪造身份下单）。
         validateCreateRequest(request);
+
+        // 鉴权闭环：以网关透传的登录用户为准，覆盖客户端传的 userId。
+        // 客户端即使伪造了 X-Auth-* Header 也会被网关清洗，且此处未登录直接 401。
+        request.setUserId(LoginUserHolder.requireUserIdAsLong());
 
         // 订单服务不自己维护用户主数据，所以先远程调用 user-service 校验用户是否存在且可用。
         UserSummary user = getUserById(request.getUserId());
@@ -231,9 +237,7 @@ public class OrderServiceImpl implements OrderService {
         if (request == null) {
             throw new IllegalArgumentException("Request body is required");
         }
-        if (request.getUserId() == null) {
-            throw new IllegalArgumentException("userId is required");
-        }
+        // userId 不再校验非空：客户端传入的 userId 会被登录上下文覆盖，未登录会直接抛 401。
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Order items are required");
         }

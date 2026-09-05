@@ -43,6 +43,9 @@ replay_pid*
 .env.*
 !.env.example
 
+# WorkBuddy Desktop workspace state (local AI assistant, per-machine)
+.workbuddy/
+
 # OS files
 .DS_Store
 Thumbs.db
