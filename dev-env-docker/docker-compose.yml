@@ -56,9 +56,32 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  # Seata Server（AT 模式 TC，镜像版本对齐 SCA 2021.0.5.0 的 seata-spring-boot-starter 1.6.1）。
+  # 配置方式：1.6.1 是 Spring Boot 应用，主配置在 /seata-server/resources/application.yml
+  # （镜像 entrypoint 为纯 java 命令），这里只单文件覆盖 application.yml 把 registry 指到 Nacos，保留镜像其余文件。
+  # ⚠️ 踩坑记录（2026-09-06 实测）：
+  #   1. 容器 bridge 内网 IP（172.x）宿主不可直连，若按默认注册，Nacos 会把 172.x 下发给宿主机客户端 → 连不上 TC；
+  #   2. SEATA_IP 环境变量可覆盖注册 IP，但**忽略 loopback**（设 127.0.0.1 无效），必须填宿主局域网 IP，
+  #      hostname=localhost / hosts hack 也无效，Seata 取网卡地址）。
+  #   3. SEATA_IP 放 .env 维护：换网络环境（IP 变化）只改 .env 一处。
+  seata:
+    image: seataio/seata-server:${SEATA_VERSION:-1.6.1}
+    environment:
+      TZ: Asia/Shanghai
+      SEATA_IP: ${SEATA_IP}
+    ports:
+      - "${SEATA_PORT:-8091}:8091"        # TC 事务协调端口（客户端/分支事务连接）
+      - "${SEATA_CONSOLE_PORT:-7091}:7091"  # 1.5+ 内置管理控制台（HTTP，账号 seata/seata）
+    volumes:
+      - ./seata/config/application.yml:/seata-server/resources/application.yml:ro
+      - seata_store:/seata-server/file_store/data
+    depends_on:
+      - nacos
+
 volumes:
   mysql_data:
   nacos_data:
   nacos_logs:
   redis_data:
   rabbitmq_data:
+  seata_store:

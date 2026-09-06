@@ -1,6 +1,6 @@
 # Dev Env (Docker)
 
-用于在本地调试时一键启动 MySQL / Nacos / Redis / Sentinel / RabbitMQ，Java 项目仍在宿主机（IDEA）本地运行。
+用于在本地调试时一键启动 MySQL / Nacos / Redis / Sentinel / RabbitMQ / Seata，Java 项目仍在宿主机（IDEA）本地运行。
 
 ## 初始化
 
@@ -32,20 +32,24 @@ docker compose down
 ## 访问地址
 
 - MySQL: localhost:3306
-- Nacos: http://localhost:8848/nacos
+- Nacos: http://localhost:18848/nacos
 - Redis: localhost:6379
 - Sentinel Dashboard: http://localhost:8858
 - RabbitMQ 管理台: http://localhost:15672（默认账号 `guest` / `guest`）
+- Seata 控制台: http://localhost:7091（账号 `seata` / `seata`，TC 端口 8091）
+
+> Seata 配置：注册到 Nacos 的广播 IP 取 `.env` 的 `SEATA_IP`（必须填宿主局域网 IP，Seata 忽略 127.0.0.1；容器 bridge 内网 IP 宿主连不上，所以不能省）。换网络环境改 `.env` 后 `docker compose up -d --force-recreate seata`。
 
 ## 本地 Java 项目连接配置
 
 当 Java 项目在宿主机运行时，统一使用 `localhost` 访问：
 
 - MySQL: `localhost:3306`
-- Nacos: `localhost:8848`
+- Nacos: `localhost:18848`
 - Redis: `localhost:6379`
 - Sentinel dashboard: `localhost:8858`
 - RabbitMQ: `localhost:5672`（AMQP），管理台 `http://localhost:15672`
+- Seata: TC 用 `.env` 的 `SEATA_IP:8091`（客户端从 Nacos 发现），控制台 `localhost:7091`
 
 ## 常用调试命令
 
