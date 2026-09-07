@@ -52,6 +52,16 @@
             <artifactId>sentinel-datasource-nacos</artifactId>
         </dependency>
 
+        <!-- Seata 分布式事务（AT 模式），版本由父工程 spring-cloud-alibaba BOM 托管（1.6.1），
+             与 dev-env-docker 的 seata-server 镜像版本对齐，无需显式声明版本号。
+             下单链路中 order-service 同时扮演两个角色：
+             - TM：@GlobalTransactional 开启全局事务，向 TC 申请 XID
+             - RM：订单主表/明细入库，作为分支事务注册到 TC -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>

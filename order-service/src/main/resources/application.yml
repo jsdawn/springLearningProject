@@ -83,6 +83,33 @@ spring:
             data-type: json
             rule-type: degrade
 
+# ==================== Seata 分布式事务（AT 模式） ====================
+# 版本对齐：spring-cloud-starter-alibaba-seata 由父工程 SCA BOM 2021.0.5.0 托管（1.6.1），
+# 与 dev-env-docker 的 seata-server:1.6.1 镜像一致。
+# 下单链路中本服务同时是 TM（@GlobalTransactional 开启全局事务）和 RM（订单入库分支）。
+seata:
+  enabled: true
+  # 事务组名：客户端用它去 Nacos 找对应的 TC 集群（映射关系见下方 service.vgroup-mapping）
+  tx-service-group: mall_tx_group
+  # AT 模式核心开关：自动代理 DataSource，Seata 才能在业务 SQL 前后记录 undo_log 回滚快照。
+  # 关掉则分支事务不注册、异常不回滚，AT 模式直接失效
+  enable-auto-data-source-proxy: true
+  registry:
+    # 与 dev-env-docker/seata/config/application.yml 的 registry 段保持一致：
+    # 从 Nacos 发现 seata-server 实例，拿到其注册地址（即 .env 的 SEATA_IP:8091）
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:}
+      group: SEATA_GROUP
+      cluster: default
+  service:
+    # 事务组 → TC 集群名映射，default 对应 Server 注册的 cluster=default。
+    # 名字对不上会启动报 "no available service"，找不到 TC
+    vgroup-mapping:
+      mall_tx_group: default
+
 # 开启 Feign 的 Sentinel 集成：Feign 调用自动纳入 Sentinel 统计（资源名形如
 # GET:http://product-service/products/{id}），可对其配置限流/熔断规则。
 # 未配置 fallback，被拦截时异常由全局异常处理器统一返回。

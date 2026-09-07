@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.seata.spring.annotation.GlobalTransactional;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -94,7 +96,21 @@ public class OrderServiceImpl implements OrderService {
         return orderInfo;
     }
 
+    /**
+     * 创建订单。这是全链路的全局事务边界（TM 角色）：
+     * 本服务的订单入库 + product-service 的扣库存，被 Seata 编排成同一全局事务下的两个分支事务。
+     * 任一环节失败，TC 通知各 RM 依据 undo_log 反向补偿，库存自动回补，业务代码无需干预。
+     *
+     * <p>两个注解的分工：
+     * <ul>
+     *   <li>{@code @GlobalTransactional}：TM 角色，向 TC 申请 XID，并通过 Feign 把 XID 传给下游服务
+     *   <li>{@code @Transactional}：本地事务边界，订单主表+明细的入库作为<b>一个</b>分支事务整体提交
+     * </ul>
+     * 去掉 {@code @Transactional} 会导致每条 SQL 各自 autocommit、各自注册分支，
+     * 既低效又把"主表+明细"的原子性拆散，所以这里两个注解都要保留。
+     */
     @Override
+    @GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
     @Transactional
     public OrderInfo createOrder(CreateOrderRequest request) {
         // 先校验下单请求本身是否合法，比如商品列表、购买数量是否缺失（userId 不再校验，
@@ -112,58 +128,50 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // orderItems 用来暂存待落库的订单明细，totalAmount 累加订单总金额。
-        // deductedItems 记录已经成功扣减过库存的商品，后面如果失败可以尽量回补库存。
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
-        List<CreateOrderItemRequest> deductedItems = new ArrayList<>();
 
-        try {
-            for (CreateOrderItemRequest itemRequest : request.getItems()) {
-                // 逐个商品校验：是否存在、是否上架、库存是否充足。
-                ProductSummary product = getProductById(itemRequest.getProductId());
-                validateProductForOrder(product, itemRequest.getQuantity());
+        for (CreateOrderItemRequest itemRequest : request.getItems()) {
+            // 逐个商品校验：是否存在、是否上架、库存是否充足。
+            ProductSummary product = getProductById(itemRequest.getProductId());
+            validateProductForOrder(product, itemRequest.getQuantity());
 
-                // 先调用商品服务扣减库存，扣减成功后把这条记录记下来，便于异常时回滚。
-                adjustProductStock(product.getId(), -itemRequest.getQuantity());
-                deductedItems.add(itemRequest);
+            // 远程扣减库存：product-service 作为 RM 注册分支事务并写 undo_log。
+            // 后续任一步失败（含订单写库失败），TC 会反向补偿这次扣减，库存自动回补。
+            adjustProductStock(product.getId(), -itemRequest.getQuantity());
 
-                // 把商品快照写进订单明细，避免后续商品名称或价格变化影响历史订单。
-                OrderItem orderItem = buildOrderItem(product, itemRequest.getQuantity());
-                orderItems.add(orderItem);
-                totalAmount = totalAmount.add(orderItem.getAmount());
-            }
-
-            // 先构造订单主表数据。
-            OrderInfo orderInfo = new OrderInfo();
-            orderInfo.setOrderNo(generateOrderNo());
-            orderInfo.setUserId(request.getUserId());
-            orderInfo.setTotalAmount(totalAmount);
-            orderInfo.setStatus(ORDER_STATUS_CREATED);
-
-            // 先保存订单主表，拿到数据库生成的订单 ID。
-            int orderRows = orderMapper.insert(orderInfo);
-            if (orderRows <= 0 || orderInfo.getId() == null) {
-                throw new IllegalStateException("Create order failed");
-            }
-
-            // 把刚生成的订单 ID 回填到每条订单明细里，建立主从关系。
-            for (OrderItem orderItem : orderItems) {
-                orderItem.setOrderId(orderInfo.getId());
-            }
-
-            // 再批量保存订单明细，如果保存条数不一致，说明创建不完整，直接抛异常。
-            int itemRows = orderMapper.batchInsertItems(orderItems);
-            if (itemRows != orderItems.size()) {
-                throw new IllegalStateException("Create order items failed, orderId=" + orderInfo.getId());
-            }
-
-            // 最后重新查一次数据库，返回包含主表和明细的最新订单结果。
-            return getOrderById(orderInfo.getId());
-        } catch (RuntimeException e) {
-            // 当前阶段还没有分布式事务，所以这里做一次“尽力而为”的库存回补。
-            rollbackAdjustedStock(deductedItems);
-            throw e;
+            // 把商品快照写进订单明细，避免后续商品名称或价格变化影响历史订单。
+            OrderItem orderItem = buildOrderItem(product, itemRequest.getQuantity());
+            orderItems.add(orderItem);
+            totalAmount = totalAmount.add(orderItem.getAmount());
         }
+
+        // 构造订单主表数据。
+        OrderInfo orderInfo = new OrderInfo();
+        orderInfo.setOrderNo(generateOrderNo());
+        orderInfo.setUserId(request.getUserId());
+        orderInfo.setTotalAmount(totalAmount);
+        orderInfo.setStatus(ORDER_STATUS_CREATED);
+
+        // 先保存订单主表，拿到数据库生成的订单 ID。
+        int orderRows = orderMapper.insert(orderInfo);
+        if (orderRows <= 0 || orderInfo.getId() == null) {
+            throw new IllegalStateException("Create order failed");
+        }
+
+        // 把刚生成的订单 ID 回填到每条订单明细里，建立主从关系。
+        for (OrderItem orderItem : orderItems) {
+            orderItem.setOrderId(orderInfo.getId());
+        }
+
+        // 再批量保存订单明细，如果保存条数不一致，说明创建不完整，抛异常触发全局回滚。
+        int itemRows = orderMapper.batchInsertItems(orderItems);
+        if (itemRows != orderItems.size()) {
+            throw new IllegalStateException("Create order items failed, orderId=" + orderInfo.getId());
+        }
+
+        // 最后重新查一次数据库，返回包含主表和明细的最新订单结果。
+        return getOrderById(orderInfo.getId());
     }
 
     @Override
@@ -206,7 +214,8 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 关单成功后回补库存：把该订单占用的库存逐条加回商品服务。
-        // 与下单时"尽力而为"的回补策略保持一致（当前阶段未引入分布式事务）。
+        // 注意：关单由 MQ 消费者触发，是独立于下单的链路，未纳入 Seata 全局事务，
+        // 所以这里仍沿用"尽力而为"的单条回补（单条失败不影响其余条目），与下单链路的强一致回滚不同。
         List<OrderItem> items = orderMapper.findItemsByOrderId(id);
         rollbackStockForItems(items);
 
@@ -276,16 +285,6 @@ public class OrderServiceImpl implements OrderService {
 
     private String generateOrderNo() {
         return "ORD" + LocalDateTime.now().format(ORDER_NO_TIME_FORMATTER) + Math.abs(System.nanoTime() % 1000);
-    }
-
-    private void rollbackAdjustedStock(List<CreateOrderItemRequest> deductedItems) {
-        for (CreateOrderItemRequest item : deductedItems) {
-            try {
-                adjustProductStock(item.getProductId(), item.getQuantity());
-            } catch (RuntimeException ignored) {
-                // Best effort rollback because current stage does not introduce distributed transactions.
-            }
-        }
     }
 
     private UserSummary getUserById(Long userId) {

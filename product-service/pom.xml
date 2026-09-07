@@ -47,6 +47,15 @@
             <artifactId>sentinel-datasource-nacos</artifactId>
         </dependency>
 
+        <!-- Seata 分布式事务（AT 模式），版本由父工程 spring-cloud-alibaba BOM 托管（1.6.1），
+             与 dev-env-docker 的 seata-server 镜像版本对齐，无需显式声明版本号。
+             下单链路中 product-service 扮演 RM：扣减库存作为分支事务注册到 TC，
+             全局回滚时由 Seata 依据 mall_db 的 undo_log 反向补偿，无需业务代码手动回补。 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>

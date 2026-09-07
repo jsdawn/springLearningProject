@@ -66,6 +66,11 @@ services:
   #   3. SEATA_IP 放 .env 维护：换网络环境（IP 变化）只改 .env 一处。
   seata:
     image: seataio/seata-server:${SEATA_VERSION:-1.6.1}
+    # Seata 启动时会向 Nacos 注册自身实例，注册失败会直接退出（Netty 端口已监听但 ServerRunner 抛错）。
+    # depends_on 只保证容器"已启动"，不保证 Nacos"已就绪"（standalone 模式就绪需数十秒），
+    # 冷启动同时拉起时 Seata 容易抢跑撞上 Connection refused 而退出。
+    # 加 unless-stopped 让它在 Nacos 就绪前反复重试，避免每次都要手动 up。
+    restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
       SEATA_IP: ${SEATA_IP}

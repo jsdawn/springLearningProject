@@ -72,6 +72,28 @@ spring:
             data-type: json
             rule-type: degrade
 
+# ==================== Seata 分布式事务（AT 模式） ====================
+# 版本对齐：spring-cloud-starter-alibaba-seata 由父工程 SCA BOM 2021.0.5.0 托管（1.6.1），
+# 与 dev-env-docker 的 seata-server:1.6.1 镜像一致。
+# 下单链路中本服务是 RM：扣减库存作为分支事务注册到 TC，全局回滚时由 Seata
+# 依据 mall_db 的 undo_log 反向补偿，业务代码无需手动回补库存。
+seata:
+  enabled: true
+  tx-service-group: mall_tx_group
+  # AT 模式核心开关：自动代理 DataSource，否则扣库存不产生 undo_log，回滚无从谈起
+  enable-auto-data-source-proxy: true
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:}
+      group: SEATA_GROUP
+      cluster: default
+  service:
+    vgroup-mapping:
+      mall_tx_group: default
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.productservice.entity
