@@ -190,6 +190,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @GlobalTransactional(name = "close-expired-order", rollbackFor = Exception.class)
     @Transactional
     public boolean closeExpiredOrder(Long id) {
         // 先查订单当前状态。订单不存在、或已经不是【待支付】（可能已支付/已取消/已关闭），
@@ -214,8 +215,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 关单成功后回补库存：把该订单占用的库存逐条加回商品服务。
-        // 注意：关单由 MQ 消费者触发，是独立于下单的链路，未纳入 Seata 全局事务，
-        // 所以这里仍沿用"尽力而为"的单条回补（单条失败不影响其余条目），与下单链路的强一致回滚不同。
+        // 已纳入 Seata 全局事务（见本方法上的 @GlobalTransactional）：
+        // 任一条回补失败 → 异常冒泡 → 全局回滚 → 订单状态退回【待支付】，由 MQ 重投再次尝试。
+        // 这样"订单置为超时关闭"与"库存回补"是原子的，不会出现旧实现里
+        // 订单已关闭但库存没回补、且消息已被 ACK 永不重试的库存泄漏。
         List<OrderItem> items = orderMapper.findItemsByOrderId(id);
         rollbackStockForItems(items);
 
@@ -225,20 +228,21 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 按订单明细把库存加回商品服务（尽力而为，单条失败不影响其余条目）。
+     * 按订单明细把库存加回商品服务。
+     *
+     * <p>刻意<b>不</b>逐条 catch 异常：任一条回补失败都必须冒泡，交给
+     * {@code @GlobalTransactional} 触发全局回滚，让"订单状态置为超时关闭"与"库存回补"
+     * 成为一个原子操作。
+     *
+     * <p>旧实现在这里吞掉异常，后果是：订单已关闭、库存没回补，而消息照常被 ACK，
+     * 永远不会重试——这部分库存在系统里永久泄漏，且没有任何报错。
      */
     private void rollbackStockForItems(List<OrderItem> items) {
         if (items == null || items.isEmpty()) {
             return;
         }
         for (OrderItem item : items) {
-            try {
-                adjustProductStock(item.getProductId(), item.getQuantity());
-            } catch (RuntimeException e) {
-                // 回补失败仅记录日志，不阻断关单主流程（与下单失败回补的处理方式一致）。
-                log.error("Restore stock failed on closeExpiredOrder, productId={}, quantity={}",
-                        item.getProductId(), item.getQuantity(), e);
-            }
+            adjustProductStock(item.getProductId(), item.getQuantity());
         }
     }
 
