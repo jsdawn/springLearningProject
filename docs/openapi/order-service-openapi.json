@@ -69,6 +69,20 @@
         ],
         "summary": "创建订单",
         "operationId": "createOrder",
+        "description": "需先调用 GET /orders/idempotent-token 领取一次性幂等令牌，并通过 X-Idempotent-Token 请求头携带。令牌消费成功即作废（5 分钟过期），同一令牌重复提交返回 409，订单不重复创建、库存不二次扣减。",
+        "parameters": [
+          {
+            "name": "X-Idempotent-Token",
+            "in": "header",
+            "required": true,
+            "description": "下单幂等令牌，由 GET /orders/idempotent-token 下发，一次性使用，5 分钟内有效。缺失返回 400，已使用/已过期/伪造返回 409",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "3f8a2c1e-9d4b-4e6a-8f2b-7c5d1e0a9b3c"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -99,6 +113,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误（含缺少幂等令牌：未携带 X-Idempotent-Token 请求头）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "重复提交：幂等令牌已使用、已过期或不存在，订单未创建、库存未扣减，需重新领号后再提交",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseError"
+                },
+                "example": {
+                  "code": 409,
+                  "message": "请勿重复提交（令牌已使用或已过期，请重新获取）",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/idempotent-token": {
+      "get": {
+        "tags": [
+          "订单管理"
+        ],
+        "summary": "获取下单幂等令牌",
+        "operationId": "issueIdempotentToken",
+        "description": "下发一次性幂等令牌（UUID），用于创建订单时防重复提交。需登录后调用。令牌 5 分钟内有效且只能消费一次，建议在进入下单页或提交前领取。",
+        "responses": {
+          "200": {
+            "description": "成功，返回令牌本身",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIdempotentToken"
                 }
               }
             }
@@ -240,6 +301,43 @@
       }
     },
     "schemas": {
+      "ApiResponseIdempotentToken": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "Idempotent token issued"
+          },
+          "data": {
+            "type": "string",
+            "description": "一次性幂等令牌（UUID），提交下单时放入 X-Idempotent-Token 请求头，5 分钟有效",
+            "example": "3f8a2c1e-9d4b-4e6a-8f2b-7c5d1e0a9b3c"
+          }
+        }
+      },
+      "ApiResponseError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务错误码，与 HTTP 状态码一致",
+            "example": 409
+          },
+          "message": {
+            "type": "string",
+            "example": "请勿重复提交（令牌已使用或已过期，请重新获取）"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true,
+            "description": "错误时为 null"
+          }
+        }
+      },
       "ApiResponseOrder": {
         "type": "object",
         "properties": {
@@ -348,7 +446,7 @@
           },
           "status": {
             "type": "integer",
-            "description": "1 表示已创建，2 表示已取消",
+            "description": "1 表示已创建（待支付），2 表示已取消，3 表示超时自动关闭",
             "example": 1
           },
           "createTime": {

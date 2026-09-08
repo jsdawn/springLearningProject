@@ -89,6 +89,19 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
+        <!-- Redis（spring-data-redis + Lettuce）：用于"下单接口幂等 token"方案。
+             版本由父工程 spring-boot-starter-parent 2.7.18 统一托管，无需写版本号 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Lettuce 连接池依赖：不引入时上面 lettuce.pool 配置会被静默忽略（单连接模式） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>

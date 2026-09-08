@@ -41,6 +41,20 @@ spring:
         # 每个消费者一次只持有 1 条未确认消息，处理完再拉下一条，
         # 避免消息在本地堆积、宕机时大批量重投
         prefetch: 1
+  # ==================== Redis 配置（下单接口幂等 token） ====================
+  # 注意 Spring Boot 2.7 的前缀是 spring.redis.*（3.x 才改为 spring.data.redis.*）。
+  # 对应 dev-env-docker 的 redis 容器（5.0.14，端口 6379）
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    # 学习项目未设密码；如 compose 侧加了 requirepass，在此补 password 即可
+    database: ${REDIS_DB:0}
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
   cloud:
     nacos:
       discovery:

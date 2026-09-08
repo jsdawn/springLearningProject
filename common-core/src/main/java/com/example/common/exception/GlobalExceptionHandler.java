@@ -98,6 +98,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理重复提交：下单幂等 token 的 Lua 原子消费失败时抛出，
+     * 含义是"令牌已使用/已过期/不存在"。返回 HTTP 409 Conflict。
+     */
+    @ExceptionHandler(DuplicateSubmitException.class)
+    public ApiResponse<Void> handleDuplicateSubmitException(DuplicateSubmitException e) {
+        return ApiResponse.fail(409, e.getMessage());
+    }
+
+    /**
      * 处理业务状态异常（如数据库操作失败），记录到 Sentinel 上下文以触发熔断降级统计
      */
     @ExceptionHandler(IllegalStateException.class)
