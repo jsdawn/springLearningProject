@@ -269,6 +269,21 @@
               "format": "int64"
             },
             "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "按订单状态筛选：1 已创建（待支付）、2 已取消、3 超时自动关闭。不传则不限状态",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            },
+            "example": 1
           }
         ],
         "responses": {

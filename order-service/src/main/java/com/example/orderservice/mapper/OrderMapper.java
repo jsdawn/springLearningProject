@@ -17,13 +17,16 @@ public interface OrderMapper {
      */
     List<OrderInfo> findPageByCondition(@Param("orderNo") String orderNo,
                                         @Param("userId") Long userId,
+                                        @Param("status") Integer status,
                                         @Param("offset") int offset,
                                         @Param("size") int size);
 
     /**
      * 统计总数（与分页查询使用同一组过滤条件）。
      */
-    long countByCondition(@Param("orderNo") String orderNo, @Param("userId") Long userId);
+    long countByCondition(@Param("orderNo") String orderNo,
+                          @Param("userId") Long userId,
+                          @Param("status") Integer status);
 
     OrderInfo findById(Long id);
 

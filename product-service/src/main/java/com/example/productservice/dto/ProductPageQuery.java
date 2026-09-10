@@ -28,6 +28,12 @@ public class ProductPageQuery {
      */
     private String keyword;
 
+    /**
+     * 分类 ID（精确），不传查全部分类
+     */
+    @Min(value = 1, message = "分类 ID 最小为 1")
+    private Long categoryId;
+
     public Integer getPageNum() {
         return pageNum;
     }
@@ -50,5 +56,13 @@ public class ProductPageQuery {
 
     public void setKeyword(String keyword) {
         this.keyword = keyword;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 }

@@ -11,6 +11,12 @@ public class Product {
 
     private Long id;
 
+    /**
+     * 分类 ID（可选）：用于"按分类查商品"列表查询，命中索引 idx_products_category
+     */
+    @Min(value = 1, message = "分类 ID 最小为 1")
+    private Long categoryId;
+
     @NotBlank(message = "商品名称不能为空")
     @Size(max = 100, message = "商品名称最长 100 位")
     private String productName;
@@ -40,6 +46,14 @@ public class Product {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public String getProductName() {

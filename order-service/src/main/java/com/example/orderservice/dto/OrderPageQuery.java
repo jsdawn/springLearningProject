@@ -34,6 +34,14 @@ public class OrderPageQuery {
     @Min(value = 1, message = "用户 ID 最小为 1")
     private Long userId;
 
+    /**
+     * 订单状态（精确）：1 已创建（待支付）2 已取消 3 超时关闭，不传查全部。
+     * 与 userId 组合查询时命中联合索引 idx_orders_user_status
+     */
+    @Min(value = 1, message = "订单状态最小为 1")
+    @Max(value = 3, message = "订单状态最大为 3")
+    private Integer status;
+
     public Integer getPageNum() {
         return pageNum;
     }
@@ -64,5 +72,13 @@ public class OrderPageQuery {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
     }
 }

@@ -75,13 +75,14 @@ public class OrderServiceImpl implements OrderService {
         int offset = (pageNum - 1) * pageSize;
         String orderNo = query == null ? null : query.getOrderNo();
         Long userId = query == null ? null : query.getUserId();
+        Integer status = query == null ? null : query.getStatus();
 
-        long total = orderMapper.countByCondition(orderNo, userId);
+        long total = orderMapper.countByCondition(orderNo, userId, status);
         if (total <= 0) {
             return PageResult.empty(pageNum, pageSize);
         }
 
-        List<OrderInfo> orders = orderMapper.findPageByCondition(orderNo, userId, offset, pageSize);
+        List<OrderInfo> orders = orderMapper.findPageByCondition(orderNo, userId, status, offset, pageSize);
         fillOrderItems(orders);
         return PageResult.of(orders, total, pageNum, pageSize);
     }

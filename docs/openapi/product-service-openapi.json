@@ -57,6 +57,7 @@
               },
               "example": {
                 "productName": "Mechanical Keyboard",
+                "categoryId": 5,
                 "price": 199.00,
                 "stock": 100,
                 "status": 1,
@@ -124,6 +125,7 @@
               },
               "example": {
                 "productName": "Mechanical Keyboard Pro",
+                "categoryId": 5,
                 "price": 219.00,
                 "stock": 80,
                 "status": 1,
@@ -261,6 +263,18 @@
               "type": "string"
             },
             "example": "Keyboard"
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "description": "按分类 ID 筛选，命中索引 idx_products_category。不传则不限分类。注意：与 keyword 同时传时为 AND 关系",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "example": 5
           }
         ],
         "responses": {
@@ -389,6 +403,12 @@
             "type": "string",
             "example": "Mechanical Keyboard"
           },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "分类 ID，可为空（未分类商品为 null）",
+            "example": 5
+          },
           "price": {
             "type": "number",
             "format": "double",
@@ -431,6 +451,12 @@
           "productName": {
             "type": "string"
           },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "分类 ID，可选；不传表示不设置分类"
+          },
           "price": {
             "type": "number",
             "format": "double"
@@ -461,6 +487,12 @@
         "properties": {
           "productName": {
             "type": "string"
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "分类 ID，可选；不传表示不设置分类"
           },
           "price": {
             "type": "number",

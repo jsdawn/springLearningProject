@@ -20,6 +20,9 @@
             <if test="userId != null">
                 AND user_id = #{userId}
             </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
         </where>
         ORDER BY id
     </select>
@@ -40,6 +43,9 @@
             <if test="userId != null">
                 AND user_id = #{userId}
             </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
         </where>
         ORDER BY id
         LIMIT #{size} OFFSET #{offset}
@@ -54,6 +60,9 @@
             </if>
             <if test="userId != null">
                 AND user_id = #{userId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
             </if>
         </where>
     </select>

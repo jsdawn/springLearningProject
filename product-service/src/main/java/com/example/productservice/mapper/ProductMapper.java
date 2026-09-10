@@ -22,14 +22,16 @@ public interface ProductMapper {
     int adjustStockById(@Param("id") Long id, @Param("delta") Integer delta);
 
     /**
-     * 分页查询（带可选 keyword 模糊搜索）。
+     * 分页查询（带可选 keyword 模糊搜索 + categoryId 分类筛选）。
      */
     List<Product> findPageByKeyword(@Param("keyword") String keyword,
+                                    @Param("categoryId") Long categoryId,
                                     @Param("offset") int offset,
                                     @Param("size") int size);
 
     /**
      * 统计总数（与分页查询使用同一组过滤条件）。
      */
-    long countByKeyword(@Param("keyword") String keyword);
+    long countByKeyword(@Param("keyword") String keyword,
+                        @Param("categoryId") Long categoryId);
 }

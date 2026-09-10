@@ -150,12 +150,14 @@ public class ProductServiceImpl implements ProductService {
 
         int offset = (pageNum - 1) * pageSize;
         String keyword = query == null ? null : query.getKeyword();
+        Long categoryId = query == null ? null : query.getCategoryId();
 
-        long total = productMapper.countByKeyword(keyword);
+        long total = productMapper.countByKeyword(keyword, categoryId);
         if (total <= 0) {
             return PageResult.empty(pageNum, pageSize);
         }
 
-        return PageResult.of(productMapper.findPageByKeyword(keyword, offset, pageSize), total, pageNum, pageSize);
+        return PageResult.of(productMapper.findPageByKeyword(keyword, categoryId, offset, pageSize),
+                total, pageNum, pageSize);
     }
 }

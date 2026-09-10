@@ -8,8 +8,10 @@ CREATE TABLE IF NOT EXISTS orders (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_orders_order_no (order_no),
-    KEY idx_orders_user_id (user_id),
-    KEY idx_orders_status (status)
+    -- (user_id, status) 联合索引：覆盖"按用户查订单"和"按用户+状态查订单"两类查询。
+    -- 左前缀 user_id 已覆盖单独按用户查的场景，故不再保留单列 idx_orders_user_id；
+    -- status 只有 3 个取值，低基数单列索引几乎不会被选中，不单独建
+    KEY idx_orders_user_status (user_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单主表';
 
 CREATE TABLE IF NOT EXISTS order_item (

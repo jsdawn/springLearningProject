@@ -6,6 +6,7 @@
 
     <select id="findAll" resultType="com.example.productservice.entity.Product">
         SELECT id,
+               category_id AS categoryId,
                product_name AS productName,
                price,
                stock,
@@ -19,6 +20,7 @@
 
     <select id="findById" resultType="com.example.productservice.entity.Product">
         SELECT id,
+               category_id AS categoryId,
                product_name AS productName,
                price,
                stock,
@@ -32,6 +34,7 @@
 
     <select id="findPageByKeyword" resultType="com.example.productservice.entity.Product">
         SELECT id,
+               category_id AS categoryId,
                product_name AS productName,
                price,
                stock,
@@ -41,7 +44,11 @@
                update_time AS updateTime
         FROM products
         <where>
+            <if test="categoryId != null">
+                category_id = #{categoryId}
+            </if>
             <if test="keyword != null and keyword != ''">
+                <if test="categoryId != null">AND</if>
                 (product_name LIKE CONCAT('%', #{keyword}, '%')
                 OR remark LIKE CONCAT('%', #{keyword}, '%'))
             </if>
@@ -54,7 +61,11 @@
         SELECT COUNT(1)
         FROM products
         <where>
+            <if test="categoryId != null">
+                category_id = #{categoryId}
+            </if>
             <if test="keyword != null and keyword != ''">
+                <if test="categoryId != null">AND</if>
                 (product_name LIKE CONCAT('%', #{keyword}, '%')
                 OR remark LIKE CONCAT('%', #{keyword}, '%'))
             </if>
@@ -63,6 +74,7 @@
 
     <insert id="insert" parameterType="com.example.productservice.entity.Product" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO products (
+            category_id,
             product_name,
             price,
             stock,
@@ -70,6 +82,7 @@
             remark
         )
         VALUES (
+            #{categoryId},
             #{productName},
             #{price},
             #{stock},
@@ -80,7 +93,8 @@
 
     <update id="updateById" parameterType="com.example.productservice.entity.Product">
         UPDATE products
-        SET product_name = #{productName},
+        SET category_id = #{categoryId},
+            product_name = #{productName},
             price = #{price},
             stock = #{stock},
             status = #{status},
