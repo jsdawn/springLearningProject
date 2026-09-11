@@ -7,6 +7,8 @@ import com.example.orderservice.client.ProductSummary;
 import com.example.orderservice.client.UserSummary;
 import com.example.orderservice.dto.CreateOrderItemRequest;
 import com.example.orderservice.dto.CreateOrderRequest;
+import com.example.orderservice.dto.CursorPageResult;
+import com.example.orderservice.dto.OrderCursorQuery;
 import com.example.orderservice.dto.OrderPageQuery;
 import com.example.orderservice.entity.OrderInfo;
 import com.example.orderservice.entity.OrderItem;
@@ -41,6 +43,11 @@ public class OrderServiceImpl implements OrderService {
     private static final Integer USER_STATUS_ENABLED = 1;
     private static final Integer PRODUCT_STATUS_ON_SALE = 1;
     private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    /**
+     * 深分页阈值：offset 超过该值时切换为延迟关联（子查询定位 id）。
+     * 小偏移两种写法成本相当，直接 LIMIT 更简单；大偏移时延迟关联优势显著。
+     */
+    private static final int DEEP_PAGE_OFFSET_THRESHOLD = 1000;
 
     private final OrderMapper orderMapper;
     private final UserFeignClient userFeignClient;
@@ -82,9 +89,44 @@ public class OrderServiceImpl implements OrderService {
             return PageResult.empty(pageNum, pageSize);
         }
 
-        List<OrderInfo> orders = orderMapper.findPageByCondition(orderNo, userId, status, offset, pageSize);
+        // 深分页优化：大偏移改走延迟关联——内层子查询只扫覆盖索引拿 id（不回表），
+        // 外层按主键精确取整行，避免"组装 offset+size 行再丢弃 offset 行"的浪费。
+        List<OrderInfo> orders = offset >= DEEP_PAGE_OFFSET_THRESHOLD
+                ? orderMapper.findPageByConditionDeferred(orderNo, userId, status, offset, pageSize)
+                : orderMapper.findPageByCondition(orderNo, userId, status, offset, pageSize);
         fillOrderItems(orders);
         return PageResult.of(orders, total, pageNum, pageSize);
+    }
+
+    /**
+     * 游标分页：WHERE id &gt; lastId LIMIT size，B+ 树直接定位后续拉，
+     * 任意页成本恒定 O(size)，彻底消除 LIMIT 偏移量问题。
+     *
+     * <p>探测下一页的常用技巧：按 pageSize + 1 查询——
+     * 返回条数超过 pageSize 说明后面还有数据（hasMore），多查的那条丢弃即可，
+     * 避免"查两趟"或为探测再发一条 COUNT。
+     */
+    @Override
+    public CursorPageResult<OrderInfo> pageOrdersByCursor(OrderCursorQuery query) {
+        int pageSize = query == null || query.getPageSize() == null || query.getPageSize() <= 0
+                ? 10 : query.getPageSize();
+        long lastId = query == null || query.getLastId() == null ? 0L : query.getLastId();
+        String orderNo = query == null ? null : query.getOrderNo();
+        Long userId = query == null ? null : query.getUserId();
+        Integer status = query == null ? null : query.getStatus();
+
+        List<OrderInfo> fetched = orderMapper.findPageByCursor(orderNo, userId, status, lastId, pageSize + 1);
+        boolean hasMore = fetched.size() > pageSize;
+        if (hasMore) {
+            fetched = fetched.subList(0, pageSize);
+        }
+
+        if (fetched.isEmpty()) {
+            return CursorPageResult.empty();
+        }
+        fillOrderItems(fetched);
+        Long nextCursor = fetched.get(fetched.size() - 1).getId();
+        return new CursorPageResult<>(fetched, nextCursor, hasMore);
     }
 
     @Override

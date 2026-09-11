@@ -28,6 +28,26 @@ public interface OrderMapper {
                           @Param("userId") Long userId,
                           @Param("status") Integer status);
 
+    /**
+     * 深分页优化（延迟关联）：内层子查询只取主键 id（覆盖索引，不回表），
+     * 外层按主键定位整行。与大偏移 LIMIT 相比，省去了"组装再丢弃"大量整行的成本。
+     */
+    List<OrderInfo> findPageByConditionDeferred(@Param("orderNo") String orderNo,
+                                                @Param("userId") Long userId,
+                                                @Param("status") Integer status,
+                                                @Param("offset") int offset,
+                                                @Param("size") int size);
+
+    /**
+     * 游标分页：返回 id 大于 lastId 的前 size 条记录（id 升序）。
+     * 任意页翻页成本恒定，不支持跳页；lastId 传 0 表示从头开始。
+     */
+    List<OrderInfo> findPageByCursor(@Param("orderNo") String orderNo,
+                                     @Param("userId") Long userId,
+                                     @Param("status") Integer status,
+                                     @Param("lastId") long lastId,
+                                     @Param("size") int size);
+
     OrderInfo findById(Long id);
 
     List<OrderItem> findItemsByOrderId(Long orderId);

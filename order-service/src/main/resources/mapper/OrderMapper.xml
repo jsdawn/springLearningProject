@@ -4,6 +4,20 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.orderservice.mapper.OrderMapper">
 
+    <!-- 共享过滤条件片段：每项都带 AND 前缀，<where> 标签会自动剥离开头的 AND。
+         这样既能用于常规条件块，也能与额外条件（如游标分页的 id > #{lastId}）拼接。 -->
+    <sql id="pageCondition">
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
     <select id="findAll" resultType="com.example.orderservice.entity.OrderInfo">
         SELECT id,
                order_no AS orderNo,
@@ -14,15 +28,7 @@
                update_time AS updateTime
         FROM orders
         <where>
-            <if test="orderNo != null and orderNo != ''">
-                order_no LIKE CONCAT('%', #{orderNo}, '%')
-            </if>
-            <if test="userId != null">
-                AND user_id = #{userId}
-            </if>
-            <if test="status != null">
-                AND status = #{status}
-            </if>
+            <include refid="pageCondition"/>
         </where>
         ORDER BY id
     </select>
@@ -37,33 +43,60 @@
                update_time AS updateTime
         FROM orders
         <where>
-            <if test="orderNo != null and orderNo != ''">
-                order_no LIKE CONCAT('%', #{orderNo}, '%')
-            </if>
-            <if test="userId != null">
-                AND user_id = #{userId}
-            </if>
-            <if test="status != null">
-                AND status = #{status}
-            </if>
+            <include refid="pageCondition"/>
         </where>
         ORDER BY id
         LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 深分页优化（延迟关联）：内层子查询只扫覆盖索引拿主键 id（不回表），
+         外层再按主键精确定位取出整行。避免 LIMIT 大偏移时"取出 900020 行整行再丢弃前 90 万行"的浪费。
+         小偏移时与直接 LIMIT 成本相当甚至略高（多一次 join），由 Service 按偏移量决定走哪条。 -->
+    <select id="findPageByConditionDeferred" resultType="com.example.orderservice.entity.OrderInfo">
+        SELECT o.id,
+               o.order_no AS orderNo,
+               o.user_id AS userId,
+               o.total_amount AS totalAmount,
+               o.status,
+               o.create_time AS createTime,
+               o.update_time AS updateTime
+        FROM orders o
+        INNER JOIN (
+            SELECT id
+            FROM orders
+            <where>
+                <include refid="pageCondition"/>
+            </where>
+            ORDER BY id
+            LIMIT #{size} OFFSET #{offset}
+        ) t ON o.id = t.id
+        ORDER BY o.id
+    </select>
+
+    <!-- 游标分页：以上一页最后一条记录的 id 为游标。B+ 树直接定位 lastId 后顺序读 size 条，
+         任意页的翻页成本恒定 O(size)，彻底消除偏移量问题；代价是不支持跳页（适合"加载更多"式交互）。 -->
+    <select id="findPageByCursor" resultType="com.example.orderservice.entity.OrderInfo">
+        SELECT id,
+               order_no AS orderNo,
+               user_id AS userId,
+               total_amount AS totalAmount,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM orders
+        <where>
+            id &gt; #{lastId}
+            <include refid="pageCondition"/>
+        </where>
+        ORDER BY id
+        LIMIT #{size}
     </select>
 
     <select id="countByCondition" resultType="long">
         SELECT COUNT(1)
         FROM orders
         <where>
-            <if test="orderNo != null and orderNo != ''">
-                order_no LIKE CONCAT('%', #{orderNo}, '%')
-            </if>
-            <if test="userId != null">
-                AND user_id = #{userId}
-            </if>
-            <if test="status != null">
-                AND status = #{status}
-            </if>
+            <include refid="pageCondition"/>
         </where>
     </select>
 

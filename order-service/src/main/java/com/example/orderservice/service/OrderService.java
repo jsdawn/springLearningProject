@@ -2,6 +2,8 @@ package com.example.orderservice.service;
 
 import com.example.common.response.PageResult;
 import com.example.orderservice.dto.CreateOrderRequest;
+import com.example.orderservice.dto.CursorPageResult;
+import com.example.orderservice.dto.OrderCursorQuery;
 import com.example.orderservice.dto.OrderPageQuery;
 import com.example.orderservice.entity.OrderInfo;
 
@@ -30,6 +32,12 @@ public interface OrderService {
 
     /**
      * 订单分页查询（手写 LIMIT 分页，便于理解 MyBatis 分页实现）。
+     * 偏移量较小走直接 LIMIT；偏移量达到深分页阈值后自动切换为延迟关联（子查询定位 id）。
      */
     PageResult<OrderInfo> pageOrders(OrderPageQuery query);
+
+    /**
+     * 订单游标分页查询（lastId 续拉，翻页成本恒定，不支持跳页）。
+     */
+    CursorPageResult<OrderInfo> pageOrdersByCursor(OrderCursorQuery query);
 }

@@ -3,6 +3,8 @@ package com.example.orderservice.controller;
 import com.example.common.response.ApiResponse;
 import com.example.common.response.PageResult;
 import com.example.orderservice.dto.CreateOrderRequest;
+import com.example.orderservice.dto.CursorPageResult;
+import com.example.orderservice.dto.OrderCursorQuery;
 import com.example.orderservice.dto.OrderPageQuery;
 import com.example.orderservice.entity.OrderInfo;
 import com.example.orderservice.mq.OrderDelayMessageProducer;
@@ -53,6 +55,16 @@ public class OrderController {
     @GetMapping("/page")
     public ApiResponse<PageResult<OrderInfo>> page(@Valid OrderPageQuery query) {
         return ApiResponse.success(orderService.pageOrders(query));
+    }
+
+    /**
+     * 游标分页：以上一页最后一条记录的 id（lastId）续拉下一页，翻页成本恒定，
+     * 适合"加载更多"式交互；不支持跳页、不返回总数。
+     * 返回的 nextCursor 直接作为下一次请求的 lastId 传入，hasMore=false 表示已到末尾。
+     */
+    @GetMapping("/page/cursor")
+    public ApiResponse<CursorPageResult<OrderInfo>> pageByCursor(@Valid OrderCursorQuery query) {
+        return ApiResponse.success(orderService.pageOrdersByCursor(query));
     }
 
     @GetMapping("/{id}")
