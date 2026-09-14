@@ -46,7 +46,7 @@
         "tags": [
           "商品管理"
         ],
-        "summary": "创建商品",
+        "summary": "创建商品（需权限点 products:create）",
         "operationId": "createProduct",
         "requestBody": {
           "required": true,
@@ -109,7 +109,7 @@
         "tags": [
           "商品管理"
         ],
-        "summary": "更新商品",
+        "summary": "更新商品（需权限点 products:update）",
         "operationId": "updateProduct",
         "parameters": [
           {
@@ -153,7 +153,7 @@
         "tags": [
           "商品管理"
         ],
-        "summary": "修改商品状态",
+        "summary": "修改商品状态（需权限点 products:status）",
         "operationId": "changeProductStatus",
         "parameters": [
           {
@@ -189,12 +189,49 @@
       }
     },
     "/products/{id}/stock": {
-      "patch": {
+      "post": {
         "tags": [
           "商品管理"
         ],
-        "summary": "调整商品库存",
+        "summary": "调整商品库存（需权限点 products:stock）",
         "operationId": "adjustProductStock",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          },
+          {
+            "name": "delta",
+            "in": "query",
+            "required": true,
+            "description": "库存增量，负数表示扣减库存，正数表示回补库存",
+            "schema": {
+              "type": "integer"
+            },
+            "example": -2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProduct"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/internal/{id}/stock": {
+      "post": {
+        "tags": [
+          "商品管理"
+        ],
+        "summary": "内部调整库存（服务间调用，不设权限门槛）",
+        "description": "仅供 order-service 经 Feign 调用，不经网关、无用户角色上下文。生产环境应叠加内网隔离或内部调用凭证。",
+        "operationId": "adjustProductStockInternal",
         "parameters": [
           {
             "$ref": "#/components/parameters/ProductId"

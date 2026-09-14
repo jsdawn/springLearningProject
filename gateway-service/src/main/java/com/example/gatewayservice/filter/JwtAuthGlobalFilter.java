@@ -57,6 +57,8 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             headers.remove(AuthConstants.HEADER_AUTH_USER_ID);
             headers.remove(AuthConstants.HEADER_AUTH_USERNAME);
             headers.remove(AuthConstants.HEADER_AUTH_JTI);
+            headers.remove(AuthConstants.HEADER_AUTH_ROLES);
+            headers.remove(AuthConstants.HEADER_AUTH_PERMS);
         });
 
         String path = exchange.getRequest().getURI().getPath();
@@ -83,6 +85,8 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         String userId = claims.getSubject();
         String username = claims.get("username", String.class);
         String jti = claims.getId();
+        List<String> roles = toStringList(claims.get(AuthConstants.CLAIM_ROLES));
+        List<String> perms = toStringList(claims.get(AuthConstants.CLAIM_PERMS));
 
         if (userId == null || jti == null) {
             return unauthorized(exchange, "未登录或Token无效");
@@ -110,6 +114,13 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                                 requestBuilder.header(AuthConstants.HEADER_AUTH_USERNAME, username);
                             }
                             requestBuilder.header(AuthConstants.HEADER_AUTH_JTI, jti);
+                            // RBAC：角色/权限集合转逗号分隔头透传（旧 token 无这两个 claim 则不注入）
+                            if (!roles.isEmpty()) {
+                                requestBuilder.header(AuthConstants.HEADER_AUTH_ROLES, String.join(",", roles));
+                            }
+                            if (!perms.isEmpty()) {
+                                requestBuilder.header(AuthConstants.HEADER_AUTH_PERMS, String.join(",", perms));
+                            }
 
                             return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
                         }).switchIfEmpty(unauthorized(exchange, "未登录或Token无效"))
@@ -131,6 +142,18 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             }
         }
         return false;
+    }
+
+    /**
+     * JWT 中的 roles/perms claim 反序列化为 List&lt;String&gt;；
+     * 旧 token 或空集合返回空 List（不注入对应头）。
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> toStringList(Object claimValue) {
+        if (claimValue instanceof List) {
+            return (List<String>) claimValue;
+        }
+        return java.util.Collections.emptyList();
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {

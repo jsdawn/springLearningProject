@@ -11,6 +11,14 @@ public final class AuthConstants {
     public static final String HEADER_AUTH_USER_ID = "X-Auth-UserId";
     public static final String HEADER_AUTH_USERNAME = "X-Auth-Username";
     public static final String HEADER_AUTH_JTI = "X-Auth-Jti";
+    /** 网关注入的角色集合头（逗号分隔，如 X-Auth-Roles: ADMIN,OPERATOR） */
+    public static final String HEADER_AUTH_ROLES = "X-Auth-Roles";
+    /** 网关注入的权限点集合头（逗号分隔，如 X-Auth-Perms: users:list,users:page） */
+    public static final String HEADER_AUTH_PERMS = "X-Auth-Perms";
+
+    /** JWT 中携带角色集合 / 权限点集合的 claim 名（RBAC） */
+    public static final String CLAIM_ROLES = "roles";
+    public static final String CLAIM_PERMS = "perms";
 
     public static final String REDIS_KEY_PREFIX_BLACKLIST = "auth:blacklist:";
     public static final String REDIS_KEY_PREFIX_SSO = "auth:sso:";

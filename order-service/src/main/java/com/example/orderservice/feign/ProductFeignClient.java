@@ -14,7 +14,7 @@ public interface ProductFeignClient {
     @GetMapping("/products/{id}")
     ApiResponse<ProductSummary> getProductById(@PathVariable("id") Long id);
 
-    @PostMapping("/products/{id}/stock")
+    @PostMapping("/products/internal/{id}/stock")
     ApiResponse<ProductSummary> adjustStock(@PathVariable("id") Long id,
                                              @RequestParam("delta") Integer delta);
 }

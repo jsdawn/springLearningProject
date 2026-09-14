@@ -137,7 +137,7 @@
         "tags": [
           "用户管理"
         ],
-        "summary": "查询用户列表",
+        "summary": "查询用户列表（需权限点 users:list）",
         "operationId": "listUsers",
         "responses": {
           "200": {
@@ -195,7 +195,7 @@
         "tags": [
           "用户管理"
         ],
-        "summary": "查询用户详情",
+        "summary": "查询用户详情（需权限点 users:detail）",
         "operationId": "getUserById",
         "parameters": [
           {
@@ -219,7 +219,7 @@
         "tags": [
           "用户管理"
         ],
-        "summary": "更新用户",
+        "summary": "更新用户（需权限点 users:update）",
         "operationId": "updateUser",
         "parameters": [
           {
@@ -244,6 +244,33 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/internal/{id}": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "内部查询用户（服务间调用，不设权限门槛）",
+        "description": "仅供 order-service 经 Feign 在下单时校验用户，不经网关、无用户角色上下文。生产环境应叠加内网隔离或内部调用凭证。",
+        "operationId": "getUserByIdInternal",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "成功",
@@ -303,7 +330,7 @@
         "tags": [
           "用户管理"
         ],
-        "summary": "分页查询用户列表",
+        "summary": "分页查询用户列表（需权限点 users:page）",
         "operationId": "pageUsers",
         "parameters": [
           {

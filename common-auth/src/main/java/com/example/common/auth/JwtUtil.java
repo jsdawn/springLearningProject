@@ -9,6 +9,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 
 public class JwtUtil {
 
@@ -20,7 +21,13 @@ public class JwtUtil {
         this.secretKey = buildSecretKey(jwtProperties.getSecretBase64());
     }
 
-    public String generateAccessToken(String userId, String username, String jti) {
+    /**
+     * 生成访问令牌（RBAC 版）：roles / perms 来自 sys_user_role / sys_role_permission
+     * 的关联查询结果，登录时装配。网关校验通过后转为 X-Auth-Roles / X-Auth-Perms 透传下游。
+     * 无状态方案的权衡：数据库里改角色/权限后需重新登录才生效（token 内的是签发时刻快照）。
+     */
+    public String generateAccessToken(String userId, String username, String jti,
+                                      List<String> roles, List<String> perms) {
         long expireSeconds = jwtProperties.getAccessTokenExpireSeconds() != null
                 ? jwtProperties.getAccessTokenExpireSeconds()
                 : 3600L;
@@ -36,6 +43,8 @@ public class JwtUtil {
                 .setIssuedAt(now)
                 .setExpiration(exp)
                 .claim("username", username)
+                .claim(AuthConstants.CLAIM_ROLES, roles)
+                .claim(AuthConstants.CLAIM_PERMS, perms)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }

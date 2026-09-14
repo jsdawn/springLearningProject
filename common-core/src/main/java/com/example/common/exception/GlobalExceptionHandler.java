@@ -98,6 +98,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理已登录但角色/权限不足：由 RoleCheckAspect 校验
+     * @RequireRole / @RequirePermission 失败时抛出，返回 403。
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ApiResponse<Void> handleForbiddenException(ForbiddenException e) {
+        return ApiResponse.fail(403, e.getMessage());
+    }
+
+    /**
      * 处理重复提交：下单幂等 token 的 Lua 原子消费失败时抛出，
      * 含义是"令牌已使用/已过期/不存在"。返回 HTTP 409 Conflict。
      */

@@ -35,6 +35,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- AOP: 支持 @RequireRole / @RequirePermission 注解 + RoleCheckAspect 切面自动代理（aspectjweaver） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Redis: 提供通用RedisTemplate、RedisUtil依赖，版本由父工程BOM托管 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

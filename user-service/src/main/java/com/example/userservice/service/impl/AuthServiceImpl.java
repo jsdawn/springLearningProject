@@ -9,6 +9,7 @@ import com.example.userservice.dto.RegisterRequest;
 import com.example.userservice.entity.User;
 import com.example.userservice.entity.UserCredential;
 import com.example.userservice.entity.UserRegister;
+import com.example.userservice.mapper.RolePermissionMapper;
 import com.example.userservice.mapper.UserMapper;
 import com.example.userservice.service.AuthService;
 import io.jsonwebtoken.Claims;
@@ -17,23 +18,28 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
+    private final RolePermissionMapper rolePermissionMapper;
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
     private final StringRedisTemplate stringRedisTemplate;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthServiceImpl(UserMapper userMapper,
+                           RolePermissionMapper rolePermissionMapper,
                            JwtUtil jwtUtil,
                            JwtProperties jwtProperties,
                            StringRedisTemplate stringRedisTemplate) {
         this.userMapper = userMapper;
+        this.rolePermissionMapper = rolePermissionMapper;
         this.jwtUtil = jwtUtil;
         this.jwtProperties = jwtProperties;
         this.stringRedisTemplate = stringRedisTemplate;
@@ -59,10 +65,19 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
-        // 3) 生成 token（jti 用于注销黑名单、单点踢人）
+        // 3) RBAC 装配：查出角色集合与权限点集合，随 token 签发（网关转 X-Auth-* 透传下游）
+        //    无绑定的用户 roles/perms 为空集合：仍可登录，但无权访问任何带权限点的接口
         String jti = UUID.randomUUID().toString().replace("-", "");
         String userId = String.valueOf(credential.getId());
-        String token = jwtUtil.generateAccessToken(userId, credential.getUsername(), jti);
+        List<String> roles = rolePermissionMapper.findRoleCodesByUsername(request.getUsername());
+        List<String> perms = rolePermissionMapper.findPermCodesByUsername(request.getUsername());
+        if (roles == null) {
+            roles = Collections.emptyList();
+        }
+        if (perms == null) {
+            perms = Collections.emptyList();
+        }
+        String token = jwtUtil.generateAccessToken(userId, credential.getUsername(), jti, roles, perms);
 
         // 4) 单点登录：userId -> currentJti（新登录会覆盖旧 jti，从而踢掉旧 token）
         long expireSeconds = jwtProperties.getAccessTokenExpireSeconds() != null
