@@ -1,0 +1,18 @@
+# ============================================================
+# Nacos 配置模板：common-jwt（三服务共用）
+# dataId: common-jwt.yaml  group: DEFAULT_GROUP  type: yaml
+#
+# JWT 公共参数：user-service（签发）、gateway（校验）、各下游服务（解析）
+# 共用同一份，改 secret 或有效期只需改这一处 + 重启相关服务。
+# 注意：secret 属于敏感信息——真实项目不要提交到 git，本模板因学习环境固定密钥而保留。
+# ============================================================
+
+jwt:
+  # HS256 签名密钥（Base64），与 common-auth JwtProperties 对应
+  secretBase64: "xxx"
+  # 签发者标识，写进 JWT iss claim
+  issuer: "springLearningProject"
+  # accessToken 有效期（秒），登录响应与 SSO 单点互踢的 Redis TTL 同源
+  accessTokenExpireSeconds: 3600
+  headerName: "Authorization"
+  headerPrefix: "Bearer "

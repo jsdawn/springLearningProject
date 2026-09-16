@@ -1,6 +1,7 @@
 package com.example.orderservice.service;
 
 import com.example.common.exception.DuplicateSubmitException;
+import com.example.orderservice.config.OrderBusinessProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -37,9 +38,6 @@ public class IdempotentTokenService {
     /** Redis key 前缀，完整 key 形如 order:idempotent:token:9f8b...-c2 */
     private static final String TOKEN_KEY_PREFIX = "order:idempotent:token:";
 
-    /** 令牌有效期 5 分钟：超时未提交自动作废，客户端需重新领取（防止令牌被长期囤积重放） */
-    private static final Duration TOKEN_TTL = Duration.ofSeconds(300);
-
     /**
      * 原子"存在即删"脚本：KEYS[1] 存在则 DEL 并返回 1，否则返回 0。
      * 脚本内容固定、无参数，作为静态常量只解析一次（DefaultRedisScript 会缓存 SHA1，
@@ -54,9 +52,13 @@ public class IdempotentTokenService {
             Long.class);
 
     private final StringRedisTemplate redisTemplate;
+    /** 令牌有效期来自 Nacos 配置中心（order.business.idempotent-token-ttl-seconds），动态可调 */
+    private final OrderBusinessProperties orderBusinessProperties;
 
-    public IdempotentTokenService(StringRedisTemplate redisTemplate) {
+    public IdempotentTokenService(StringRedisTemplate redisTemplate,
+                                  OrderBusinessProperties orderBusinessProperties) {
         this.redisTemplate = redisTemplate;
+        this.orderBusinessProperties = orderBusinessProperties;
     }
 
     /**
@@ -66,8 +68,9 @@ public class IdempotentTokenService {
      */
     public String issueToken() {
         String token = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set(TOKEN_KEY_PREFIX + token, "1", TOKEN_TTL);
-        log.info("Issued idempotent token: {}", token);
+        Duration ttl = Duration.ofSeconds(orderBusinessProperties.getIdempotentTokenTtlSeconds());
+        redisTemplate.opsForValue().set(TOKEN_KEY_PREFIX + token, "1", ttl);
+        log.info("Issued idempotent token: {} (ttl={}s)", token, ttl.getSeconds());
         return token;
     }
 

@@ -1,0 +1,32 @@
+# ============================================================
+# Nacos 配置模板：order-service
+# dataId: order-service.yaml  group: DEFAULT_GROUP  type: yaml
+# 导入方式：Nacos 控制台 → 配置管理 → 配置列表 → 创建/编辑该 dataId，
+#          或控制台导出 zip 后在别的环境导入。改完点"发布"即动态生效。
+#
+# 分工约定：
+#   - 本文件只放「业务参数」（需要运营期调整、动态刷新的值）
+#   - 连接信息（datasource/redis/rabbitmq/seata/sentinel transport）留各服务
+#     本地 application.yml（基础设施地址不随业务变动，放配置中心只会增加耦合）
+#   - 本地 application.yml 与本模板都不写的参数，走代码里
+#     OrderBusinessProperties 的默认值兜底（配置类即契约）
+# ============================================================
+
+# ⚠️ 发布约定：下方 yaml body 是发布到 Nacos 的完整内容，只允许 ASCII 字符——
+# NacosDataParserHandler 用 data.getBytes()（平台默认编码，本机 GBK）转字节后
+# 再按 UTF-8 解析，含中文会在启动时报 MalformedInputException（2026-09-16 实测）。
+# ============================================================
+
+order:
+  business:
+    # Deep-pagination threshold: switch to deferred-join SQL when offset exceeds
+    # this value. Maps to OrderBusinessProperties.deepPageOffsetThreshold (hot reload)
+    deep-page-offset-threshold: 1000
+    # Idempotent token TTL in seconds, maps to idempotentTokenTtlSeconds (hot reload).
+    # Note: only affects tokens issued AFTER the change; existing Redis tokens keep
+    # their original TTL
+    idempotent-token-ttl-seconds: 300
+
+# 说明：order.mq.delay-ttl-ms（关单延时队列 TTL）不进配置中心——
+# 它是队列的 x-message-ttl 声明属性，改配置不会更新已存在的队列，
+# 需要删除队列重建才生效，动态刷新反而造成"改了没生效"的误解，故留在本地 yml。

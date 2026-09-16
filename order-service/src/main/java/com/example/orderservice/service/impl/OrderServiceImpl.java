@@ -5,6 +5,7 @@ import com.example.common.response.ApiResponse;
 import com.example.common.response.PageResult;
 import com.example.orderservice.client.ProductSummary;
 import com.example.orderservice.client.UserSummary;
+import com.example.orderservice.config.OrderBusinessProperties;
 import com.example.orderservice.dto.CreateOrderItemRequest;
 import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.dto.CursorPageResult;
@@ -43,22 +44,21 @@ public class OrderServiceImpl implements OrderService {
     private static final Integer USER_STATUS_ENABLED = 1;
     private static final Integer PRODUCT_STATUS_ON_SALE = 1;
     private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-    /**
-     * 深分页阈值：offset 超过该值时切换为延迟关联（子查询定位 id）。
-     * 小偏移两种写法成本相当，直接 LIMIT 更简单；大偏移时延迟关联优势显著。
-     */
-    private static final int DEEP_PAGE_OFFSET_THRESHOLD = 1000;
 
     private final OrderMapper orderMapper;
     private final UserFeignClient userFeignClient;
     private final ProductFeignClient productFeignClient;
+    /** 业务参数来自 Nacos 配置中心（order-service.yaml），改值动态生效无需重启 */
+    private final OrderBusinessProperties orderBusinessProperties;
 
     public OrderServiceImpl(OrderMapper orderMapper,
                             UserFeignClient userFeignClient,
-                            ProductFeignClient productFeignClient) {
+                            ProductFeignClient productFeignClient,
+                            OrderBusinessProperties orderBusinessProperties) {
         this.orderMapper = orderMapper;
         this.userFeignClient = userFeignClient;
         this.productFeignClient = productFeignClient;
+        this.orderBusinessProperties = orderBusinessProperties;
     }
 
     @Override
@@ -91,7 +91,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 深分页优化：大偏移改走延迟关联——内层子查询只扫覆盖索引拿 id（不回表），
         // 外层按主键精确取整行，避免"组装 offset+size 行再丢弃 offset 行"的浪费。
-        List<OrderInfo> orders = offset >= DEEP_PAGE_OFFSET_THRESHOLD
+        // 阈值来自 Nacos 配置中心（order.business.deep-page-offset-threshold），动态可调
+        List<OrderInfo> orders = offset >= orderBusinessProperties.getDeepPageOffsetThreshold()
                 ? orderMapper.findPageByConditionDeferred(orderNo, userId, status, offset, pageSize)
                 : orderMapper.findPageByCondition(orderNo, userId, status, offset, pageSize);
         fillOrderItems(orders);

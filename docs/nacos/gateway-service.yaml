@@ -1,0 +1,22 @@
+# ============================================================
+# Nacos 配置模板：gateway-service
+# dataId: gateway-service.yaml  group: DEFAULT_GROUP  type: yaml
+#
+# 网关鉴权白名单：典型运营参数——临时放行某个回调地址、压测时放行探活路径，
+# 在 Nacos 改完点"发布"即动态生效，不用重启网关。
+#
+# 优先级说明：spring.config.import 引入的 Nacos 配置优先于本地 application.yml，
+# 所以本地 yml 里的 gateway.auth.whitelist 是兜底值；本文件一旦配置即覆盖本地。
+# ============================================================
+
+# ⚠️ 发布约定：下方 yaml body 是发布到 Nacos 的完整内容，只允许 ASCII 字符
+#（中文注释会因客户端 GBK→UTF-8 解码失败导致网关启动报 MalformedInputException）。
+# ============================================================
+
+gateway:
+  auth:
+    # Auth whitelist (Ant style), read per-request by JwtAuthGlobalFilter.
+    # Overrides local application.yml once this dataId exists (hot reload)
+    whitelist:
+      - /api/user/auth/login
+      - /api/user/auth/register
