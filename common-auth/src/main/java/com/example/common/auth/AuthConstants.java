@@ -20,6 +20,9 @@ public final class AuthConstants {
     public static final String CLAIM_ROLES = "roles";
     public static final String CLAIM_PERMS = "perms";
 
+    /** 链路追踪头：网关生成/透传，下游服务读取后写入 MDC（日志格式含 traceId） */
+    public static final String HEADER_TRACE_ID = "X-Trace-Id";
+
     public static final String REDIS_KEY_PREFIX_BLACKLIST = "auth:blacklist:";
     public static final String REDIS_KEY_PREFIX_SSO = "auth:sso:";
 

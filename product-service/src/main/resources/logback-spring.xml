@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 公共日志格式在 common-core jar 内，本服务只 include；网关不依赖 common-core 故有独立配置 -->
+<configuration>
+    <include resource="logback/logback-base.xml"/>
+</configuration>
