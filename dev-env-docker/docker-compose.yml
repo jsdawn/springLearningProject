@@ -83,6 +83,17 @@ services:
     depends_on:
       - nacos
 
+  # Zipkin Server（链路追踪收集端，阶段13 P5 可观测性）。
+  # 四服务通过 spring-cloud-sleuth-zipkin 上报 span 到 http://localhost:9411；
+  # Web UI: http://localhost:9411/zipkin。学习期用内存存储（STORAGE_TYPE=mem，重启数据清空），
+  # 生产需换 elasticsearch/mysql 持久化。
+  zipkin:
+    image: openzipkin/zipkin:${ZIPKIN_VERSION:-3.0}
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "${ZIPKIN_PORT:-9411}:9411"
+
 volumes:
   mysql_data:
   nacos_data:
