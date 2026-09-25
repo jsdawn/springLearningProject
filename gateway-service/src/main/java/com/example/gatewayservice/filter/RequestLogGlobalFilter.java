@@ -18,10 +18,9 @@ public class RequestLogGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String method = exchange.getRequest().getMethodValue();
         String path = exchange.getRequest().getURI().getRawPath();
-        // TraceIdGlobalFilter（order 最小）已把 traceId 写进请求头，此处直接读；
-        // WebFlux 下 MDC 跨 EventLoop 线程不可靠，网关日志须显式携带
-        String traceId = exchange.getRequest().getHeaders().getFirst("X-Trace-Id");
-        log.info("Gateway Request -> {} {} [traceId={}]", method, path, traceId);
+        // traceId 无需手工取：Sleuth 3.x 会自动装饰 Reactor 链传播 MDC，
+        // 日志 pattern 里的 %X{traceId} 对网关日志同样生效
+        log.info("Gateway Request -> {} {}", method, path);
         return chain.filter(exchange);
     }
 

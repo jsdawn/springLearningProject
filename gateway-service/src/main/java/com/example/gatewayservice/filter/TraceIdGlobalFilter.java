@@ -1,5 +1,6 @@
 package com.example.gatewayservice.filter;
 
+import brave.Tracer;
 import com.example.common.auth.AuthConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,43 +11,41 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 /**
- * 链路追踪（网关侧）：生成/透传 X-Trace-Id，下游 Servlet 服务由 common-core 的
- * TraceIdFilter 读入 MDC 输出到日志。
+ * 链路追踪（网关侧，Sleuth 接管后的瘦身版）：
+ * traceId 的生成与向下游传播（b3 头）已由 Sleuth 自动完成，本类只保留一件事——
+ * 把 Sleuth 当前 traceId 回填到响应头 X-Trace-Id，调用方报障时凭响应头即可定位日志与 Zipkin 链路。
+ * 从 Tracer 取值保证响应头、网关日志 MDC、Zipkin 上的 traceId 三者同源。
  *
- * <p>为什么不用 MDC：网关是 WebFlux 响应式栈，请求处理跨多个 EventLoop 线程，
- * MDC 基于 ThreadLocal 会串值——网关日志只能显式打印 traceId（见 RequestLogGlobalFilter）。
- *
- * <p>Order 取最小值：保证排在本类之外的鉴权过滤器（order=-10）之前，
- * 连 401 被拦的请求也带 traceId，报障排查不缺入口。
+ * <p>Order 取 HIGHEST_PRECEDENCE + 10：必须排在 Sleuth 的 WebFlux 埋点过滤器
+ * （HIGHEST_PRECEDENCE + 5）之内才能从 Tracer 拿到当前 span 上下文；
+ * 同时仍早于鉴权过滤器（-10），401 被拦的响应也带回 traceId。
  */
 @Component
 public class TraceIdGlobalFilter implements GlobalFilter, Ordered {
 
     private static final Logger log = LoggerFactory.getLogger(TraceIdGlobalFilter.class);
 
+    private final Tracer tracer;
+
+    public TraceIdGlobalFilter(Tracer tracer) {
+        this.tracer = tracer;
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String traceId = exchange.getRequest().getHeaders().getFirst(AuthConstants.HEADER_TRACE_ID);
-        if (traceId == null || traceId.isEmpty()) {
-            traceId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        brave.Span currentSpan = tracer.currentSpan();
+        if (currentSpan != null) {
+            exchange.getResponse().getHeaders().set(
+                    AuthConstants.HEADER_TRACE_ID, currentSpan.context().traceIdString());
+        } else {
+            log.warn("no active span, skip X-Trace-Id response header");
         }
-
-        final String tid = traceId;
-        // 请求头透传给下游；响应头回传给调用方（报障时凭响应头即可定位日志）
-        exchange.getResponse().getHeaders().set(AuthConstants.HEADER_TRACE_ID, tid);
-
-        return chain.filter(exchange.mutate()
-                .request(exchange.getRequest().mutate()
-                        .headers(headers -> headers.set(AuthConstants.HEADER_TRACE_ID, tid))
-                        .build())
-                .build());
+        return chain.filter(exchange);
     }
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
+        return Ordered.HIGHEST_PRECEDENCE + 10;
     }
 }
