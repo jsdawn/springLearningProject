@@ -1,12 +1,19 @@
 name: Docker Images
 
-# push 到 main 时构建四个服务镜像并推送 GHCR（用仓库自带 GITHUB_TOKEN 认证，无需额外配置密钥）
+# 不直接监听 push：由 CI 流水线跑完后接力触发（workflow_run 串行门禁）——
+# 只有 CI 在 main 上编译+测试全绿，才构建四个服务镜像并推送 GHCR，
+# 保证 GHCR 上永远不存在未通过测试的镜像。
+# 用仓库自带 GITHUB_TOKEN 认证，无需额外配置密钥
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 jobs:
   build-push:
+    # CI 失败/被取消时直接跳过整个构建
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,8 +23,18 @@ jobs:
       matrix:
         service: [gateway-service, order-service, product-service, user-service]
     steps:
+      # workflow_run 事件里 github.sha 是 main 最新提交，可能与触发 CI 的提交不同
+      # （CI 运行期间又有新 push），所以 checkout 和镜像 tag 都必须显式用 head_sha
+      - name: Resolve source commit
+        id: vars
+        run: echo "short_sha=${HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -29,7 +46,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 产出两个 tag：sha-<短哈希>（不可变，用于回溯）与 latest（始终指向最新 main）
+      # 产出两个 tag：sha-<短哈希>（不可变，用于回溯，取触发 CI 的那个提交）与 latest（始终指向最新 main）
       # 注意：GHCR 镜像名必须全小写
       - name: Extract metadata
         id: meta
@@ -37,7 +54,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}
           tags: |
-            type=sha,prefix=sha-
+            type=raw,value=sha-${{ steps.vars.outputs.short_sha }}
             type=raw,value=latest
 
       - name: Build and push
