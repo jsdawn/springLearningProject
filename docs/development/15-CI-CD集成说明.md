@@ -80,6 +80,9 @@ permissions:
 4. **空串校验违规数**：`@NotBlank` 和 `@Size(min=...)` 对空串**同时触发**，断言违规数时两个注解都要算
 5. **dependency:go-offline 对部分插件依赖拉不全**，加 `|| true` 容忍失败——真正编译时 Maven 会自动补齐缺失依赖，只损失少量缓存命中率
 6. push 走 Clash 代理（127.0.0.1:7897），节点抖动时 `Recv failure: Connection was reset`，重试即可；代理未启动时端口无监听，先开代理软件
+7. **IDE 自动生成的 `*ApplicationTests.contextLoads` 是环境依赖测试**——`@SpringBootTest` 启动完整上下文需要 Nacos/MySQL/Redis，CI 里必挂。三个此类测试已删除（git 历史可找回）；若想保留，应配置 mock 环境或 surefire 排除
+8. **`openjdk:8-jre` 已从 Docker Hub 下架**（openjdk 官方镜像停止维护），运行层换 `eclipse-temurin:8-jre`（Temurin 是持续维护的 JDK 8 发行版）；`maven:3.8-openjdk-8` 构建层目前仍可拉取
+9. `git credential fill` 在 `credential.helper` 未显式配置时会触发 GCM 的「Select a credential helper」弹窗且不持久化选择，反复调用会反复弹——`git config --global credential.helper manager` 一劳永逸
 
 ## 七、后续可扩展
 
