@@ -45,8 +45,13 @@ class JwtUtilTest {
         assertThat(claims.getId()).isEqualTo("jti-001");
         assertThat(claims.getIssuer()).isEqualTo("mall-test");
         assertThat(claims.get("username", String.class)).isEqualTo("admin");
-        assertThat((List<?>) claims.get(AuthConstants.CLAIM_ROLES)).containsExactly("ADMIN", "USER");
-        assertThat((List<?>) claims.get(AuthConstants.CLAIM_PERMS)).containsExactly("users:list");
+        @SuppressWarnings("unchecked")
+        List<String> parsedRoles = (List<String>) claims.get(AuthConstants.CLAIM_ROLES);
+        assertThat(parsedRoles).containsExactly("ADMIN", "USER");
+
+        @SuppressWarnings("unchecked")
+        List<String> parsedPerms = (List<String>) claims.get(AuthConstants.CLAIM_PERMS);
+        assertThat(parsedPerms).containsExactly("users:list");
     }
 
     @Test
