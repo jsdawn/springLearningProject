@@ -7,7 +7,7 @@
 | 决策点 | 选择 | 理由 |
 |---|---|---|
 | CI 平台 | GitHub Actions | 仓库已在 GitHub（jsdawn/springLearningProject），零额外账号；公开仓库免费额度充足 |
-| 触发策略 | push main + PR 双触发 | PR 触发让合并前就能看到流水线状态 |
+| 触发策略 | CI：push main + PR 双触发；镜像：`workflow_run` 接力（CI 绿了才构建） | PR 触发让合并前就能看到流水线状态；镜像走串行门禁，GHCR 上不存在未过测试的镜像 |
 | CD 边界 | 构建镜像推 GHCR，**不做自动部署** | 学习期部署目标不稳定（本地 Docker compose 手动拉起即可）；镜像推 GHCR 用仓库自带 `GITHUB_TOKEN` 认证，不用注册 Docker Hub |
 | 镜像 tag | `sha-<短哈希>` + `latest` 双 tag | sha tag 不可变、可回溯到具体提交；latest 始终指向最新 main |
 | runner | `ubuntu-latest` | 与本机 Windows 形成跨平台编译验证，编码/路径类问题会在 CI 暴露 |
@@ -18,12 +18,14 @@
 push/PR ──> ci.yml ──> JDK8+Maven: mvn clean package（含 22 个冒烟测试）
                     └> upload-artifact: 四个服务 jar（保留 90 天）
 
-push main ──> docker.yml ──> matrix 4 服务并行：
-                            Dockerfile.<service> 多阶段构建
-                            ──> push ghcr.io/jsdawn/<service>:{sha-xxx,latest}
+CI 在 main 上全绿 ──> workflow_run 接力 ──> docker.yml ──> matrix 4 服务并行：
+                                                        Dockerfile.<service> 多阶段构建
+                                                        ──> push ghcr.io/jsdawn/<service>:{sha-xxx,latest}
 ```
 
-两个工作流独立触发、职责分离：ci.yml 管「代码能不能过」，docker.yml 管「产物能不能成镜像」。
+两个工作流职责分离但**串行门禁**：ci.yml 管「代码能不能过」，docker.yml 管「产物能不能成镜像」——后者不监听 push，而是由 `workflow_run` 监听 CI 完成事件，CI 结论非 success 时 job 级 `if` 直接跳过。若两者同时由 push 并行触发（互不等待），测试挂了镜像仍可能被推上去，所以必须接力而非并行。
+
+workflow_run 的一个坑：事件里的 `github.sha` 是 main 最新提交，与触发 CI 的提交（`workflow_run.head_sha`）可能不同（CI 运行期间又有新 push 时）。因此 docker.yml 里 checkout 的 ref 和 `sha-xxx` tag 都显式取 `head_sha`，保证镜像内容与 tag 对得上。
 
 ## 三、冒烟测试集（ci.yml 的 test 前提）
 
