@@ -1,0 +1,39 @@
+name: CI
+
+# push 到 main 或任何 PR 时触发：JDK 8 全量编译 + 单元测试
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # JDK 8 + Temurin；cache: maven 缓存 ~/.m2，首次慢、后续命中缓存只需增量下载
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      # Linux runner 编译 = 与本机 Windows 形成跨平台验证（编码/路径问题在此暴露）
+      - name: Build and test
+        run: mvn -B clean package
+
+      - name: Upload service jars
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-jars
+          path: |
+            gateway-service/target/*.jar
+            order-service/target/*.jar
+            product-service/target/*.jar
+            user-service/target/*.jar
+          retention-days: 90
+          if-no-files-found: ignore

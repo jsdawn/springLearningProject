@@ -1,0 +1,13 @@
+# 构建上下文排除项：与构建无关的大目录和本地产物
+.git
+.github
+.workbuddy
+.docker
+logs
+**/logs/
+**/target/
+docs
+dev-env-docker
+*.iml
+.idea
+README.md
