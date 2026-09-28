@@ -48,8 +48,9 @@ public class OrderController {
 
     @GetMapping
     public ApiResponse<List<OrderInfo>> list(@RequestParam(value = "orderNo", required = false) String orderNo,
-                                             @RequestParam(value = "userId", required = false) Long userId) {
-        return ApiResponse.success(orderService.listOrders(orderNo, userId));
+                                             @RequestParam(value = "userId", required = false) Long userId,
+                                             @RequestParam(value = "status", required = false) Integer status) {
+        return ApiResponse.success(orderService.listOrders(orderNo, userId, status));
     }
 
     @GetMapping("/page")

@@ -62,8 +62,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderInfo> listOrders(String orderNo, Long userId) {
-        List<OrderInfo> orders = orderMapper.findAll(orderNo, userId);
+    public List<OrderInfo> listOrders(String orderNo, Long userId, Integer status) {
+        List<OrderInfo> orders = orderMapper.findAll(orderNo, userId, status);
         fillOrderItems(orders);
         return orders;
     }

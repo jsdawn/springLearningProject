@@ -10,7 +10,9 @@ import java.util.List;
 @Mapper
 public interface OrderMapper {
 
-    List<OrderInfo> findAll(@Param("orderNo") String orderNo, @Param("userId") Long userId);
+    List<OrderInfo> findAll(@Param("orderNo") String orderNo,
+                            @Param("userId") Long userId,
+                            @Param("status") Integer status);
 
     /**
      * 分页查询（带可选过滤条件）。

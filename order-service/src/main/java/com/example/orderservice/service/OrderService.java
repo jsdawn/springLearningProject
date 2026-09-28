@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface OrderService {
 
-    List<OrderInfo> listOrders(String orderNo, Long userId);
+    List<OrderInfo> listOrders(String orderNo, Long userId, Integer status);
 
     OrderInfo getOrderById(Long id);
 
