@@ -1,10 +1,22 @@
 name: CI
 
 # push 到 main 或任何 PR 时触发：JDK 8 全量编译 + 单元测试
+# paths-ignore：纯文档类改动不触发（改 .md/docs 不影响代码，跳过可省 Actions 额度；
+# CI 不运行则 docker.yml 的 workflow_run 也不会触发，镜像构建随之自动跳过）
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE'
 
 jobs:
   build-and-test:

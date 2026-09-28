@@ -7,7 +7,7 @@
 | 决策点 | 选择 | 理由 |
 |---|---|---|
 | CI 平台 | GitHub Actions | 仓库已在 GitHub（jsdawn/springLearningProject），零额外账号；公开仓库免费额度充足 |
-| 触发策略 | CI：push main + PR 双触发；镜像：`workflow_run` 接力（CI 绿了才构建） | PR 触发让合并前就能看到流水线状态；镜像走串行门禁，GHCR 上不存在未过测试的镜像 |
+| 触发策略 | CI：push main + PR 双触发，`paths-ignore` 忽略纯文档改动（docs/**、**/*.md）；镜像：`workflow_run` 接力（CI 绿了才构建） | PR 触发让合并前就能看到流水线状态；文档改动不触发 CI/镜像，省 Actions 额度；镜像走串行门禁，GHCR 上不存在未过测试的镜像 |
 | CD 边界 | 构建镜像推 GHCR，**不做自动部署** | 学习期部署目标不稳定（本地 Docker compose 手动拉起即可）；镜像推 GHCR 用仓库自带 `GITHUB_TOKEN` 认证，不用注册 Docker Hub |
 | 镜像 tag | `sha-<短哈希>` + `latest` 双 tag | sha tag 不可变、可回溯到具体提交；latest 始终指向最新 main |
 | runner | `ubuntu-latest` | 与本机 Windows 形成跨平台编译验证，编码/路径类问题会在 CI 暴露 |
