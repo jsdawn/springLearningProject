@@ -1,0 +1,9 @@
+order:
+  business:
+    # Deep-pagination threshold: switch to deferred-join SQL when offset exceeds
+    # this value. Maps to OrderBusinessProperties.deepPageOffsetThreshold (hot reload)
+    deep-page-offset-threshold: 1000
+    # Idempotent token TTL in seconds, maps to idempotentTokenTtlSeconds (hot reload).
+    # Note: only affects tokens issued AFTER the change; existing Redis tokens keep
+    # their original TTL
+    idempotent-token-ttl-seconds: 300

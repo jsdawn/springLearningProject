@@ -1,0 +1,220 @@
+# ============================================================
+# CI/CD 全链路闭环部署演练（阶段14 收尾）
+# 目标：验证「git push → CI 测试 → 镜像推 GHCR → 拉镜像 → 可运行系统」闭环，
+# 全部服务使用 GHCR 拉取的镜像运行（不含任何本地编译产物）。
+#
+# 与 dev-env-docker 的关系：
+#   - 中间件软件与版本一致（MySQL/Nacos/Redis/Sentinel/RabbitMQ/Seata/Zipkin），
+#     但独立端口、独立卷、独立 compose 项目（name: mall-ghcr），可与开发环境共存
+#   - 宿主端口统一 +20000 偏移，避免与开发环境冲突；容器互访一律走服务名（容器内端口不变）
+#   - Nacos/MySQL 均为全新实例 → 由 nacos-seed / db-seed 两个一次性容器自动播种
+#
+# 启动：docker compose -f deploy/docker-compose.ghcr.yml up -d
+# 验证入口：网关 http://localhost:28080
+# ============================================================
+name: mall-ghcr
+
+# 四个业务服务共用的环境变量（容器互访走 compose 服务名）
+x-service-env: &service-env
+  TZ: Asia/Shanghai
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_NAME: mall_db
+  DB_USERNAME: root
+  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+  NACOS_SERVER_ADDR: nacos:8848
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  ZIPKIN_BASE_URL: http://zipkin:9411
+  SENTINEL_DASHBOARD: sentinel:8858
+
+x-service-depends: &service-depends
+  mysql:
+    condition: service_healthy
+  nacos:
+    condition: service_healthy
+  # 等 Nacos 配置播种完成再启动，保证 common-jwt.yaml 等在 config.import 时已存在
+  nacos-seed:
+    condition: service_completed_successfully
+  redis:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  # Seata 容器就绪即可（注册到 Nacos 可能有延迟）；服务侧 restart 兜底重试
+  seata:
+    condition: service_started
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: mall_db
+    ports:
+      - "23306:3306"
+    volumes:
+      - mysql_ghcr_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  nacos:
+    image: nacos/nacos-server:v2.5.3
+    environment:
+      MODE: standalone
+      TZ: Asia/Shanghai
+    ports:
+      - "28848:8848"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/v1/console/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  redis:
+    image: redis:5.0.14
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "26379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    environment:
+      TZ: Asia/Shanghai
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "25672:5672"
+      - "25673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.6
+    ports:
+      - "28858:8858"
+
+  # 与 dev-env-docker 复用同一份 seata 配置（registry 已指向服务名 nacos:8848）。
+  # ⚠️ 不设 SEATA_IP：闭环演练里 order/product 客户端与 TC 同在 compose 网络内，
+  # Seata 注册容器 IP 即可达；开发环境需要宿主 IP 是因为客户端跑在 IDE（宿主机）里
+  seata:
+    image: seataio/seata-server:1.6.1
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "28091:8091"
+      - "27091:7091"
+    volumes:
+      - ../dev-env-docker/seata/config/application.yml:/seata-server/resources/application.yml:ro
+    depends_on:
+      - nacos
+
+  zipkin:
+    image: openzipkin/zipkin:3.0
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "29411:9411"
+
+  # 一次性容器：向全新 Nacos 发布三份配置（来自 dev 环境导出的真实内容）。
+  # common-jwt.yaml 必须存在——JWT secret 无代码默认值，缺失则登录/鉴权全挂
+  nacos-seed:
+    image: curlimages/curl:8.10.1
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        for f in common-jwt gateway-service order-service; do
+          curl -s -X POST "http://nacos:8848/nacos/v1/cs/configs" \
+            --data-urlencode "dataId=$${f}.yaml" \
+            --data-urlencode "group=DEFAULT_GROUP" \
+            --data-urlencode "type=yaml" \
+            --data-urlencode "content@/seed/$${f}.yaml"
+          echo " <- published $${f}.yaml"
+        done
+        echo "nacos seed done"
+    volumes:
+      - ./nacos-seed:/seed:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+
+  # 一次性容器：等 user/product 服务的 schema.sql 建表后，灌入种子数据
+  # （users/admin/alice + RBAC 四表绑定 + 两件商品）。data.sql 是 INSERT IGNORE 幂等
+  db-seed:
+    image: mysql:8.0
+    entrypoint: ["bash", "-c"]
+    environment:
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:-123456}
+    command:
+      - |
+        set -e
+        echo "waiting for tables created by services' schema.sql ..."
+        until mysql -h mysql -u root mall_db -e "SELECT 1 FROM sys_user_role LIMIT 1" >/dev/null 2>&1 \
+           && mysql -h mysql -u root mall_db -e "SELECT 1 FROM products LIMIT 1" >/dev/null 2>&1; do
+          sleep 5
+        done
+        # --default-character-set：mysql 客户端默认 latin1，会把 UTF-8 的中文种子存成乱码
+        mysql --default-character-set=utf8mb4 -h mysql -u root mall_db < /seed/user-data.sql
+        mysql --default-character-set=utf8mb4 -h mysql -u root mall_db < /seed/product-data.sql
+        echo "db seed done"
+    volumes:
+      - ../user-service/src/main/resources/data.sql:/seed/user-data.sql:ro
+      - ../product-service/src/main/resources/data.sql:/seed/product-data.sql:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ==================== 四个业务服务（GHCR 镜像，无本地构建产物） ====================
+  user-service:
+    image: ghcr.io/jsdawn/user-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+
+  product-service:
+    image: ghcr.io/jsdawn/product-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+
+  order-service:
+    image: ghcr.io/jsdawn/order-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+
+  gateway-service:
+    image: ghcr.io/jsdawn/gateway-service:latest
+    environment:
+      <<: *service-env
+      # 网关不连 MySQL/RabbitMQ/Seata，去掉无意义依赖：只等 Nacos（含配置播种）与 Redis
+    depends_on:
+      nacos:
+        condition: service_healthy
+      nacos-seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "28080:8080"
+    restart: unless-stopped
+
+volumes:
+  mysql_ghcr_data:

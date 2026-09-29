@@ -1,0 +1,7 @@
+gateway:
+  auth:
+    # Auth whitelist (Ant style), read per-request by JwtAuthGlobalFilter.
+    # Overrides local application.yml once this dataId exists (hot reload)
+    whitelist:
+      - /api/user/auth/login
+      - /api/user/auth/register
