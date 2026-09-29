@@ -109,7 +109,7 @@ services:
     ports:
       - "28858:8858"
 
-  # 与 dev-env-docker 复用同一份 seata 配置（registry 已指向服务名 nacos:8848）。
+  # 独立的测试环境 seata 配置（deploy/seata/，自包含不依赖 dev-env-docker）。
   # ⚠️ 不设 SEATA_IP：闭环演练里 order/product 客户端与 TC 同在 compose 网络内，
   # Seata 注册容器 IP 即可达；开发环境需要宿主 IP 是因为客户端跑在 IDE（宿主机）里
   seata:
@@ -121,7 +121,7 @@ services:
       - "28091:8091"
       - "27091:7091"
     volumes:
-      - ../dev-env-docker/seata/config/application.yml:/seata-server/resources/application.yml:ro
+      - ./seata/config/application.yml:/seata-server/resources/application.yml:ro
     depends_on:
       - nacos
 
