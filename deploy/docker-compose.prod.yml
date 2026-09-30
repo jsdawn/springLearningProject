@@ -1,0 +1,220 @@
+# ============================================================
+# 生产部署编排（2C/2G 服务器适用）
+# 与 docker-compose.ghcr.yml（测试/闭环演练）的差异：
+#   1. 砍掉 Zipkin 与 Sentinel Dashboard 两个观测容器，省出约 700MB 内存
+#      - Zipkin：SPRING_ZIPKIN_ENABLED=false 关上报，Sleuth 埋点保留（日志 traceId 照常）
+#      - Sentinel：控制台只是看板；限流/熔断规则存 Nacos、执行在客户端，砍容器不影响防护。
+#        不删 SENTINEL_DASHBOARD 环境变量之外的东西，也勿关 sentinel 客户端
+#        （feign.sentinel.enabled=true 依赖它，关了 fallback/熔断失效）。
+#        副作用：eager 客户端连 localhost:8858 被拒，日志少量 connect refused 噪音（无害）
+#   2. 各容器加 mem_limit 上限 + JVM 堆上限，防单容器失控拖垮 2G 小机（OOM 连坐）
+#   3. 项目名 mall-prod，卷/网络与测试环境完全隔离，可同机共存
+#
+# 服务器首次部署：
+#   git clone https://github.com/jsdawn/springLearningProject.git
+#   cd springLearningProject/deploy
+#   cp .env.example .env   # 填生产专用密码与 JWT 密钥（勿复用测试环境值）
+#   docker compose -f docker-compose.prod.yml up -d
+# 验证入口：网关 http://<服务器IP>:28080
+# ============================================================
+name: mall-prod
+
+# 四个业务服务共用环境变量（容器互访走 compose 服务名）
+x-service-env: &service-env
+  TZ: Asia/Shanghai
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_NAME: mall_db
+  DB_USERNAME: root
+  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+  NACOS_SERVER_ADDR: nacos:8848
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  # 生产裁剪：不上报 Zipkin（Sleuth 埋点/MDC traceId 仍生效）
+  SPRING_ZIPKIN_ENABLED: "false"
+  # 2G 小机的 JVM 堆护栏（Dockerfile 入口脚本消费 JAVA_OPTS）
+  JAVA_OPTS: "-Xms128m -Xmx256m -Dfile.encoding=UTF-8"
+
+x-service-depends: &service-depends
+  mysql:
+    condition: service_healthy
+  nacos:
+    condition: service_healthy
+  nacos-seed:
+    condition: service_completed_successfully
+  redis:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  seata:
+    condition: service_started
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+      MYSQL_DATABASE: mall_db
+    ports:
+      - "23306:3306"
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  nacos:
+    image: nacos/nacos-server:v2.5.3
+    environment:
+      MODE: standalone
+      TZ: Asia/Shanghai
+      JVM_XMS: 256m
+      JVM_XMX: 384m
+    ports:
+      - "28848:8848"
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/v1/console/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  redis:
+    image: redis:5.0.14
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "26379:6379"
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    environment:
+      TZ: Asia/Shanghai
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "25672:5672"
+      - "25673:15672"
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  seata:
+    image: seataio/seata-server:1.6.1
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "28091:8091"
+      - "27091:7091"
+    volumes:
+      - ./seata/config/application.yml:/seata-server/resources/application.yml:ro
+    mem_limit: 384m
+    depends_on:
+      - nacos
+
+  # 一次性容器：向全新 Nacos 发布三份配置（与测试环境同一套种子模板）
+  nacos-seed:
+    image: curlimages/curl:8.10.1
+    entrypoint: ["sh", "-c"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?}
+    command:
+      - |
+        set -e
+        for f in common-jwt gateway-service order-service; do
+          sed "s|__JWT_SECRET__|${JWT_SECRET}|g" "/seed/$${f}.yaml" > "/tmp/$${f}.yaml"
+          curl -s -X POST "http://nacos:8848/nacos/v1/cs/configs" \
+            --data-urlencode "dataId=$${f}.yaml" \
+            --data-urlencode "group=DEFAULT_GROUP" \
+            --data-urlencode "type=yaml" \
+            --data-urlencode "content@/tmp/$${f}.yaml"
+          echo " <- published $${f}.yaml"
+        done
+        echo "nacos seed done"
+    volumes:
+      - ./nacos-seed:/seed:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+
+  # 一次性容器：等 schema 建表后灌入种子数据
+  db-seed:
+    image: mysql:8.0
+    entrypoint: ["bash", "-c"]
+    environment:
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:?}
+    command:
+      - |
+        set -e
+        echo "waiting for tables created by services' schema.sql ..."
+        until mysql -h mysql -u root mall_db -e "SELECT 1 FROM sys_user_role LIMIT 1" >/dev/null 2>&1 \
+           && mysql -h mysql -u root mall_db -e "SELECT 1 FROM products LIMIT 1" >/dev/null 2>&1; do
+          sleep 5
+        done
+        mysql --default-character-set=utf8mb4 -h mysql -u root mall_db < /seed/user-data.sql
+        mysql --default-character-set=utf8mb4 -h mysql -u root mall_db < /seed/product-data.sql
+        echo "db seed done"
+    volumes:
+      - ../user-service/src/main/resources/data.sql:/seed/user-data.sql:ro
+      - ../product-service/src/main/resources/data.sql:/seed/product-data.sql:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ==================== 四个业务服务（GHCR 镜像） ====================
+  user-service:
+    image: ghcr.io/jsdawn/user-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+    mem_limit: 320m
+
+  product-service:
+    image: ghcr.io/jsdawn/product-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+    mem_limit: 320m
+
+  order-service:
+    image: ghcr.io/jsdawn/order-service:latest
+    environment: *service-env
+    depends_on: *service-depends
+    restart: unless-stopped
+    mem_limit: 320m
+
+  gateway-service:
+    image: ghcr.io/jsdawn/gateway-service:latest
+    environment:
+      <<: *service-env
+    depends_on:
+      nacos:
+        condition: service_healthy
+      nacos-seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "28080:8080"
+    restart: unless-stopped
+    mem_limit: 320m
+
+volumes:
+  mysql_prod_data:
