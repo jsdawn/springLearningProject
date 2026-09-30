@@ -1,8 +1,8 @@
 INSERT INTO users (id, username, password, nickname, phone, email, user_type, status)
-VALUES (1, 'admin', '$2a$10$e0MYzXyjpJS2xKz5v6nYEOJz0YzUKGwEuKXXSb9VjA36TObgGJE0a', '系统管理员', '13800000001', 'admin@example.com', 1, 1);
+VALUES (1, 'admin', '$2a$10$qU/SOF1RZcmUmYIj5JmfiuevcHPaPLUWjsekQVf6aeQ3uP0bdUWq2', '系统管理员', '13800000001', 'admin@example.com', 1, 1);
 
 INSERT INTO users (id, username, password, nickname, phone, email, user_type, status)
-VALUES (2, 'alice', '$2a$10$e0MYzXyjpJS2xKz5v6nYEOJz0YzUKGwEuKXXSb9VjA36TObgGJE0a', '普通用户Alice', '13800000002', 'alice@example.com', 2, 1);
+VALUES (2, 'alice', '$2a$10$qU/SOF1RZcmUmYIj5JmfiuevcHPaPLUWjsekQVf6aeQ3uP0bdUWq2', '普通用户Alice', '13800000002', 'alice@example.com', 2, 1);
 
 -- ============================================================
 -- RBAC 角色权限种子数据（对应 schema.sql 的 sys_* 四张表）

@@ -7,12 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080/api/user",
-      "description": "本地网关(用户服务)"
-    },
-    {
-      "url": "http://localhost:8081",
-      "description": "本地用户服务"
+      "url": "http://localhost:8080",
+      "description": "本地网关"
     }
   ],
   "tags": [
@@ -26,7 +22,7 @@
     }
   ],
   "paths": {
-    "/auth/login": {
+    "/api/user/auth/login": {
       "post": {
         "tags": [
           "认证"
@@ -61,7 +57,7 @@
         }
       }
     },
-    "/auth/register": {
+    "/api/user/auth/register": {
       "post": {
         "tags": [
           "认证"
@@ -99,7 +95,7 @@
         }
       }
     },
-    "/auth/logout": {
+    "/api/user/auth/logout": {
       "post": {
         "tags": [
           "认证"
@@ -132,7 +128,7 @@
         }
       }
     },
-    "/users": {
+    "/api/user/users": {
       "get": {
         "tags": [
           "用户管理"
@@ -190,7 +186,7 @@
         }
       }
     },
-    "/users/{id}": {
+    "/api/user/users/{id}": {
       "get": {
         "tags": [
           "用户管理"
@@ -258,7 +254,7 @@
         }
       }
     },
-    "/users/internal/{id}": {
+    "/api/user/users/internal/{id}": {
       "get": {
         "tags": [
           "用户管理"
@@ -285,7 +281,7 @@
         }
       }
     },
-    "/users/{id}/status": {
+    "/api/user/users/{id}/status": {
       "patch": {
         "tags": [
           "用户管理"
@@ -325,7 +321,7 @@
         }
       }
     },
-    "/users/page": {
+    "/api/user/users/page": {
       "get": {
         "tags": [
           "用户管理"

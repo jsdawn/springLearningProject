@@ -7,12 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080/api/product",
-      "description": "本地网关(商品服务)"
-    },
-    {
-      "url": "http://localhost:8082",
-      "description": "本地商品服务"
+      "url": "http://localhost:8080",
+      "description": "本地网关"
     }
   ],
   "tags": [
@@ -22,7 +18,7 @@
     }
   ],
   "paths": {
-    "/products": {
+    "/api/product/products": {
       "get": {
         "tags": [
           "商品管理"
@@ -58,7 +54,7 @@
               "example": {
                 "productName": "Mechanical Keyboard",
                 "categoryId": 5,
-                "price": 199.00,
+                "price": 199.0,
                 "stock": 100,
                 "status": 1,
                 "remark": "RGB mechanical keyboard"
@@ -80,7 +76,7 @@
         }
       }
     },
-    "/products/{id}": {
+    "/api/product/products/{id}": {
       "get": {
         "tags": [
           "商品管理"
@@ -126,7 +122,7 @@
               "example": {
                 "productName": "Mechanical Keyboard Pro",
                 "categoryId": 5,
-                "price": 219.00,
+                "price": 219.0,
                 "stock": 80,
                 "status": 1,
                 "remark": "Updated version"
@@ -148,7 +144,7 @@
         }
       }
     },
-    "/products/{id}/status": {
+    "/api/product/products/{id}/status": {
       "patch": {
         "tags": [
           "商品管理"
@@ -188,7 +184,7 @@
         }
       }
     },
-    "/products/{id}/stock": {
+    "/api/product/products/{id}/stock": {
       "post": {
         "tags": [
           "商品管理"
@@ -224,7 +220,7 @@
         }
       }
     },
-    "/products/internal/{id}/stock": {
+    "/api/product/products/internal/{id}/stock": {
       "post": {
         "tags": [
           "商品管理"
@@ -261,7 +257,7 @@
         }
       }
     },
-    "/products/page": {
+    "/api/product/products/page": {
       "get": {
         "tags": [
           "商品管理"
@@ -449,7 +445,7 @@
           "price": {
             "type": "number",
             "format": "double",
-            "example": 199.00
+            "example": 199.0
           },
           "stock": {
             "type": "integer",

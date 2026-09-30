@@ -7,12 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080/api/order",
-      "description": "本地网关(订单服务)"
-    },
-    {
-      "url": "http://localhost:8083",
-      "description": "本地订单服务"
+      "url": "http://localhost:8080",
+      "description": "本地网关"
     }
   ],
   "tags": [
@@ -22,7 +18,7 @@
     }
   ],
   "paths": {
-    "/orders": {
+    "/api/order/orders": {
       "get": {
         "tags": [
           "订单管理"
@@ -145,7 +141,7 @@
         }
       }
     },
-    "/orders/idempotent-token": {
+    "/api/order/orders/idempotent-token": {
       "get": {
         "tags": [
           "订单管理"
@@ -167,7 +163,7 @@
         }
       }
     },
-    "/orders/{id}": {
+    "/api/order/orders/{id}": {
       "get": {
         "tags": [
           "订单管理"
@@ -193,7 +189,7 @@
         }
       }
     },
-    "/orders/{id}/cancel": {
+    "/api/order/orders/{id}/cancel": {
       "patch": {
         "tags": [
           "订单管理"
@@ -219,7 +215,7 @@
         }
       }
     },
-    "/orders/page": {
+    "/api/order/orders/page": {
       "get": {
         "tags": [
           "订单管理"
@@ -301,7 +297,7 @@
         }
       }
     },
-    "/orders/page/cursor": {
+    "/api/order/orders/page/cursor": {
       "get": {
         "tags": [
           "订单管理"
