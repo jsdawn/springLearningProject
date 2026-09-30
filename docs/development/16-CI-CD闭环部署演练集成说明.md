@@ -33,6 +33,8 @@ deploy/
 **nacos-seed**（curlimages/curl）：
 - `depends_on: nacos: service_healthy` 后执行，向全新 Nacos 发布三份配置
 - **common-jwt.yaml 必须存在**：JWT secret 无代码默认值，缺失则登录/鉴权全链路挂
+- **密钥不进 git**：种子里的 `common-jwt.yaml` 只放 `__JWT_SECRET__` 占位符，真实密钥由
+  `deploy/.env` 的 `JWT_SECRET` 注入 nacos-seed 容器环境，发布前 `sed` 替换（见踩坑 7）
 - 业务服务再通过 `nacos-seed: service_completed_successfully` 依赖它，保证 `config.import` 时配置已就位
 
 **db-seed**（mysql 客户端镜像）：
@@ -88,6 +90,12 @@ docker compose -f deploy/docker-compose.ghcr.yml down -v
    镜像构建自动跟着跳过，docker.yml 无需单独配置。
 6. **deploy/ 目录的改动会触发 CI**：`paths-ignore` 目前只忽略 `docs/**` 与 `*.md`，
    deploy/ 编排文件变更仍会跑全量 CI + 重建镜像（对产物无影响的目录可按需加入 ignore）。
+7. **密钥不落 git（`.env` 机制）**：compose 中密钥类变量一律 `${VAR:?msg}` 强制外部注入
+   （无默认值，缺失直接报错），真实值放 `deploy/.env`（.gitignore 忽略），仓库只提交
+   `.env.example` 模板；nacos-seed 用容器环境变量 + `sed` 在发布前替换种子模板里的
+   `__JWT_SECRET__` 占位符。**判断口径：跨环境会变/敏感的进 .env，compose 栈内部
+   固定不变的拓扑值（服务名、内网端口）留在 compose 里——12-Factor 的 config 指
+   "部署之间会变的东西"，不是"所有东西"**。
 
 ## 四、与规范 CD 的差距（后续演进方向）
 
@@ -95,5 +103,5 @@ docker compose -f deploy/docker-compose.ghcr.yml down -v
 |---|---|---|
 | 环境分层 | 单环境（本机 compose） | 测试/生产多环境，同一 `sha-xxx` 镜像晋升 |
 | 部署触发 | 手动 `compose up` | 流水线 deploy job（SSH/K8s）或 GitOps（ArgoCD） |
-| 密钥管理 | compose 内默认值 | GitHub Secrets / Vault 注入，不进 git |
+| 密钥管理 | `deploy/.env` 本地注入，不进 git | GitHub Secrets / Vault 等集中托管 + 轮换 |
 | 发布策略 | 全量替换 | 滚动更新 / 蓝绿 / 金丝雀 + 健康检查 + 按旧 sha tag 回滚 |

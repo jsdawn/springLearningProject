@@ -1,5 +1,6 @@
 jwt:
-  secretBase64: "emAYidkMZibNad5sC5OuTse9Ls8xnnumW5EiZmquJjo="
+  # 占位符：真实密钥由 nacos-seed 容器从 .env 的 JWT_SECRET 注入替换（见 docker-compose.ghcr.yml）
+  secretBase64: "__JWT_SECRET__"
   issuer: "springLearningProject"
   accessTokenExpireSeconds: 3600
   headerName: "Authorization"

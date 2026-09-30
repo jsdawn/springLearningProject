@@ -21,7 +21,9 @@ x-service-env: &service-env
   DB_PORT: 3306
   DB_NAME: mall_db
   DB_USERNAME: root
-  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+  # 密钥类值一律从 deploy/.env 注入（compose -f 指定时项目目录=deploy/，自动读取 .env），
+  # :? 表示缺失直接报错退出，杜绝明文默认值进 git
+  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
   NACOS_SERVER_ADDR: nacos:8848
   REDIS_HOST: redis
   REDIS_PORT: 6379
@@ -51,7 +53,7 @@ services:
     image: mysql:8.0
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
       MYSQL_DATABASE: mall_db
     ports:
       - "23306:3306"
@@ -137,15 +139,19 @@ services:
   nacos-seed:
     image: curlimages/curl:8.10.1
     entrypoint: ["sh", "-c"]
+    environment:
+      # JWT 密钥由 .env 注入容器环境，发布前替换种子模板里的占位符，密钥不落 git
+      JWT_SECRET: ${JWT_SECRET:?}
     command:
       - |
         set -e
         for f in common-jwt gateway-service order-service; do
+          sed "s|__JWT_SECRET__|${JWT_SECRET}|g" "/seed/$${f}.yaml" > "/tmp/$${f}.yaml"
           curl -s -X POST "http://nacos:8848/nacos/v1/cs/configs" \
             --data-urlencode "dataId=$${f}.yaml" \
             --data-urlencode "group=DEFAULT_GROUP" \
             --data-urlencode "type=yaml" \
-            --data-urlencode "content@/seed/$${f}.yaml"
+            --data-urlencode "content@/tmp/$${f}.yaml"
           echo " <- published $${f}.yaml"
         done
         echo "nacos seed done"
@@ -161,7 +167,7 @@ services:
     image: mysql:8.0
     entrypoint: ["bash", "-c"]
     environment:
-      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:?}
     command:
       - |
         set -e
