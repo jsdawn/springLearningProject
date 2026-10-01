@@ -98,7 +98,9 @@ jobs:
             docker compose -f deploy/docker-compose.prod.yml up -d
             docker image prune -f
 
-      # 冒烟验证：网关 → user-service → DB 链路活着（错误密码也应返回标准 400 响应体）
+      # 冒烟验证：网关 → user-service → DB 链路活着（错误密码也应返回标准 400 响应体）。
+      # 服务容器刚起时 Spring Boot 还在启动（30~60s），连接会被重置（curl exit 56），
+      # 必须轮询等待就绪，不能 up -d 完立刻 curl
       - name: Smoke check
         uses: appleboy/ssh-action@v1
         with:
@@ -109,8 +111,17 @@ jobs:
             set -e
             cd /opt/mall/app
             docker compose -f deploy/docker-compose.prod.yml ps --status running
-            resp=$(curl -s -X POST http://localhost:28080/api/user/auth/login \
-              -H "Content-Type: application/json" \
-              -d '{"username":"smoke_check","password":"wrong"}')
-            echo "login smoke response: $resp"
-            echo "$resp" | grep -q '"code":400'
+            # 最多等 24 轮 × 5s = 2 分钟，拿到标准 400 业务响应即认为链路就绪
+            for i in $(seq 1 24); do
+              resp=$(curl -s -m 5 -X POST http://localhost:28080/api/user/auth/login \
+                -H "Content-Type: application/json" \
+                -d '{"username":"smoke_check","password":"wrong"}' || true)
+              if echo "$resp" | grep -q '"code":400'; then
+                echo "smoke OK (attempt $i): $resp"
+                exit 0
+              fi
+              echo "attempt $i not ready, retry in 5s ..."
+              sleep 5
+            done
+            echo "smoke check FAILED: gateway did not become ready in 2 minutes"
+            exit 1
