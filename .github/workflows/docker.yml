@@ -87,6 +87,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # 默认 10 分钟不够：服务器到 GHCR 带宽抖动时 compose pull 可能超时
+          command_timeout: 30m
           script: |
             set -e
             cd /opt/mall/app
