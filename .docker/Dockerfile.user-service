@@ -13,11 +13,18 @@ COPY gateway-service/pom.xml gateway-service/pom.xml
 RUN mvn -B -q dependency:go-offline || true
 COPY . .
 RUN mvn -B -pl user-service -am clean package -DskipTests
+# layertools 拆层：依赖层(不变,~95%体积)与应用层(每次变)分离，改代码只重传应用层
+RUN mkdir -p /build/user-service/target/extracted \
+    && cd /build/user-service/target/extracted \
+    && java -Djarmode=layertools -jar ../*.jar extract
 
 FROM eclipse-temurin:8-jre
 WORKDIR /app
 ENV TZ=Asia/Shanghai \
     JAVA_OPTS="-Dfile.encoding=UTF-8 -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-COPY --from=build /build/user-service/target/*.jar app.jar
+COPY --from=build /build/user-service/target/extracted/dependencies/ ./
+COPY --from=build /build/user-service/target/extracted/spring-boot-loader/ ./
+COPY --from=build /build/user-service/target/extracted/snapshot-dependencies/ ./
+COPY --from=build /build/user-service/target/extracted/application/ ./
 EXPOSE 8081
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.JarLauncher"]

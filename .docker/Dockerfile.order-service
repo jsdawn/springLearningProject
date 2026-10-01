@@ -16,11 +16,22 @@ RUN mvn -B -q dependency:go-offline || true
 # 再拷全量源码，只构建目标模块及其依赖链
 COPY . .
 RUN mvn -B -pl order-service -am clean package -DskipTests
+# 用 layertools 把 fat jar 拆成四个独立层（Boot 2.3+ 原生支持，无需额外依赖）：
+# dependencies(依赖,~95%体积,基本不变) / spring-boot-loader / snapshot-dependencies / application(业务代码,每次变)
+# 拆层后改代码只重传 application 层，部署拉取量从 ~85MB 降到 ~MB 级
+RUN mkdir -p /build/order-service/target/extracted \
+    && cd /build/order-service/target/extracted \
+    && java -Djarmode=layertools -jar ../*.jar extract
 
 FROM eclipse-temurin:8-jre
 WORKDIR /app
 ENV TZ=Asia/Shanghai \
     JAVA_OPTS="-Dfile.encoding=UTF-8 -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-COPY --from=build /build/order-service/target/*.jar app.jar
+# 按变化频率从低到高分层 COPY：依赖层内容不变即命中远端缓存，只有 application 层每次重传
+COPY --from=build /build/order-service/target/extracted/dependencies/ ./
+COPY --from=build /build/order-service/target/extracted/spring-boot-loader/ ./
+COPY --from=build /build/order-service/target/extracted/snapshot-dependencies/ ./
+COPY --from=build /build/order-service/target/extracted/application/ ./
 EXPOSE 8083
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# 分层 jar 的标准启动方式：JarLauncher 按层加载，等价于 java -jar
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.JarLauncher"]
