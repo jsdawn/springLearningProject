@@ -24,6 +24,12 @@
         <spring-cloud.version>2021.0.5</spring-cloud.version>
         <spring-cloud-alibaba.version>2021.0.5.0</spring-cloud-alibaba.version>
         <jjwt.version>0.11.5</jjwt.version>
+        <!-- 可复现构建：固定 jar 内 entry 的时间戳（unix 秒）。不设该属性时 Maven 打包会把
+             「当前构建时刻」写进每个 jar entry 的 mtime，导致即使依赖完全没变，
+             每次构建产出的 jar（进而 layertools 拆出的 Docker 依赖层）digest 都不同，
+             生产服务器 pull 时无法复用已有层缓存，每次全量重拉 ~200MB。
+             固定后：依赖不变 → 依赖层 digest 不变 → 服务器只需拉取变化的应用层（~MB 级） -->
+        <project.build.outputTimestamp>1760000000</project.build.outputTimestamp>
     </properties>
 
     <modules>
