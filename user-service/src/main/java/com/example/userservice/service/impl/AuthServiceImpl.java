@@ -93,7 +93,7 @@ public class AuthServiceImpl implements AuthService {
         // 1) 业务侧做唯一性校验，避免完全依赖数据库唯一索引
         User exist = userMapper.findByUsername(request.getUsername());
         if (exist != null) {
-            throw new IllegalArgumentException("用户名已存在");
+            throw new IllegalArgumentException("用户名已存在（auth）");
         }
 
         // 2) 密码强哈希（BCrypt），禁止明文存储
