@@ -70,12 +70,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # 四个镜像全部推成功后，自动部署到生产服务器（Continuous Deployment）。
+  # 四个镜像全部推成功后，暂停等待人工审批，批准后自动部署到生产服务器。
+  # 审批门禁来自 GitHub Environments：仓库 Settings → Environments → production
+  # 配置 Required reviewers。批准前可在本地测试环境拉取镜像做准生产验证，
+  # 测试通过后再到 Actions 运行页点 "Review deployments" 批准。
   # 服务器侧准备：~/.ssh/github_deploy 密钥对 + authorized_keys + GitHub Secrets
   # （SSH_HOST / SSH_USER / SSH_PRIVATE_KEY）。数据库迁移脚本不在此链路，仍手动执行。
   deploy:
     needs: build-push
     runs-on: ubuntu-latest
+    # 声明部署环境：触发 Environments 的审批门禁（未配置 reviewer 时此行无副作用）
+    environment: production
     # 两次 push 的部署排队串行执行，避免交叉重建容器
     concurrency:
       group: production-deploy
