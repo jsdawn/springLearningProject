@@ -14,9 +14,13 @@ RUN mvn -B -q dependency:go-offline || true
 COPY . .
 RUN mvn -B -pl user-service -am clean package -DskipTests
 # layertools 拆层：依赖层(不变,~95%体积)与应用层(每次变)分离，改代码只重传应用层
+# ⚠️ touch 固定解压产物 mtime（与 pom 的 project.build.outputTimestamp 同值）：
+#   Docker 层 tar 的 digest 包含文件 mtime，extract 写文件用「当前时刻」会导致
+#   内容完全相同的层在每次构建时 digest 漂移，服务器无法复用层缓存（全量重拉）
 RUN mkdir -p /build/user-service/target/extracted \
     && cd /build/user-service/target/extracted \
-    && java -Djarmode=layertools -jar ../*.jar extract
+    && java -Djarmode=layertools -jar ../*.jar extract \
+    && find . -exec touch -h -d @1760000000 {} +
 
 FROM eclipse-temurin:8-jre
 WORKDIR /app

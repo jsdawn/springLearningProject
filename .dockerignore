@@ -1,4 +1,7 @@
 # 构建上下文排除项：与构建无关的大目录和本地产物
+# ⚠️ deploy/ 必须排除：compose/种子文件的改动不该触发 COPY . . 层失效
+#   （否则 mvn package 被迫重跑，叠加层 tar mtime 漂移导致镜像层 digest 变化）
+# ⚠️ 运行日志同理：服务一跑 *.log 就变，日志不进 context 才能保住 mvn 缓存
 .git
 .github
 .workbuddy
@@ -7,7 +10,10 @@ logs
 **/logs/
 **/target/
 docs
+deploy
 dev-env-docker
 *.iml
 .idea
+.vscode
 README.md
+**/*.log
